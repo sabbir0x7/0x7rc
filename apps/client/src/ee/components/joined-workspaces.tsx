@@ -21,7 +21,7 @@ export default function JoinedWorkspaces() {
           <UnstyledButton
             key={index}
             component={Link}
-            to={getHostnameUrl(workspace?.hostname) + "/home"}
+            to={getHostnameUrl(workspace?.hostname) + "/dashboard"}
             className={classes.workspace}
           >
             <Group wrap="nowrap">

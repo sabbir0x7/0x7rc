@@ -213,3 +213,51 @@ export async function uploadFile(
 
   return req as unknown as IAttachment;
 }
+
+export interface IResearchNoteAuthor {
+  id: string;
+  name: string;
+  avatar?: string;
+}
+
+export interface IResearchNoteItem {
+  id: string;
+  slugId: string;
+  title: string;
+  isPublished: boolean;
+  projectId: string | null;
+  spaceSlug: string;
+  spaceId: string;
+  createdAt: string;
+  updatedAt: string;
+  author: IResearchNoteAuthor;
+  preview: string;
+}
+
+export interface IResearchNotesResponse {
+  notes: IResearchNoteItem[];
+  totalNotes: number;
+  yourNotesCount: number;
+  publishedNotesCount: number;
+  memberCounts: Record<string, number>;
+}
+
+export async function togglePagePublish(
+  pageId: string,
+  isPublished: boolean,
+): Promise<{ success: boolean; isPublished: boolean; pageId: string }> {
+  const req = await api.post("/pages/toggle-publish", { pageId, isPublished });
+  return req.data;
+}
+
+export async function getResearchNotes(
+  projectId?: string,
+  spaceId?: string,
+): Promise<IResearchNotesResponse> {
+  const req = await api.post<IResearchNotesResponse>("/pages/research-notes", {
+    projectId,
+    spaceId,
+  });
+  return req.data;
+}
+

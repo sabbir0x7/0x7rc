@@ -7,17 +7,13 @@ import {
 } from "@mantine/core";
 import {
   IconBrightnessFilled,
-  IconBrush,
   IconCheck,
   IconChevronDown,
   IconDeviceDesktop,
+  IconHome,
   IconLogout,
   IconMoon,
-  IconSettings,
   IconSun,
-  IconUser,
-  IconUserCircle,
-  IconUsers,
 } from "@tabler/icons-react";
 import { useDisclosure } from "@mantine/hooks";
 import { getSpaceUrl } from "@/lib/config.ts";
@@ -76,80 +72,13 @@ export default function TopMenu() {
         </UnstyledButton>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Label>{t("Workspace")}</Menu.Label>
-
         <Menu.Item
           component={Link}
-          to={APP_ROUTE.SETTINGS.WORKSPACE.GENERAL}
-          leftSection={<IconSettings size={16} />}
+          to="/dashboard"
+          leftSection={<IconHome size={16} />}
         >
-          {t("Workspace settings")}
+          {t("Dashboard")}
         </Menu.Item>
-
-        <Menu.Item
-          component={Link}
-          to={APP_ROUTE.SETTINGS.WORKSPACE.MEMBERS}
-          leftSection={<IconUsers size={16} />}
-        >
-          {t("Manage members")}
-        </Menu.Item>
-
-        <Menu.Divider />
-
-        <Menu.Label>{t("Account")}</Menu.Label>
-        <Menu.Item component={Link} to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}>
-          <Group wrap={"nowrap"}>
-            <CustomAvatar
-              size={"sm"}
-              avatarUrl={user.avatarUrl}
-              name={user.name}
-            />
-
-            <div style={{ width: 190 }}>
-              <Text size="sm" fw={500} lineClamp={1}>
-                {user.name}
-              </Text>
-              <Text size="xs" c="dimmed" truncate="end">
-                {user.email}
-              </Text>
-            </div>
-          </Group>
-        </Menu.Item>
-        <Menu.Item
-          component={Link}
-          to={APP_ROUTE.SETTINGS.ACCOUNT.PROFILE}
-          leftSection={<IconUserCircle size={16} />}
-        >
-          {t("My profile")}
-        </Menu.Item>
-
-        <Menu.Item
-          component={Link}
-          to={APP_ROUTE.SETTINGS.ACCOUNT.PREFERENCES}
-          leftSection={<IconBrush size={16} />}
-        >
-          {t("My preferences")}
-        </Menu.Item>
-
-        {personalSpace ? (
-          <Menu.Item
-            component={Link}
-            to={getSpaceUrl(personalSpace.slug)}
-            leftSection={<IconUser size={16} />}
-          >
-            {t("Personal space")}
-          </Menu.Item>
-        ) : (
-          hasPersonalSpaces &&
-          settingEnabled && (
-            <Menu.Item
-              onClick={openCreate}
-              leftSection={<IconUser size={16} />}
-            >
-              {t("Create personal space")}
-            </Menu.Item>
-          )
-        )}
 
         <Menu.Sub>
           <Menu.Sub.Target>
@@ -196,8 +125,6 @@ export default function TopMenu() {
         </Menu.Item>
       </Menu.Dropdown>
     </Menu>
-
-      <CreatePersonalSpaceModal opened={createOpened} onClose={closeCreate} />
     </>
   );
 }

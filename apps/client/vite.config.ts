@@ -18,6 +18,8 @@ export default defineConfig(({ mode }) => {
     POSTHOG_KEY,
     AI_VECTOR_DRIVER,
     BETA_PUBLIC_SPACES,
+    GEMINI_API_KEY,
+    VITE_GEMINI_API_KEY,
   } = loadEnv(mode, envPath, "");
 
   return {
@@ -35,6 +37,8 @@ export default defineConfig(({ mode }) => {
         POSTHOG_KEY,
         AI_VECTOR_DRIVER,
         BETA_PUBLIC_SPACES,
+        GEMINI_API_KEY: GEMINI_API_KEY || VITE_GEMINI_API_KEY || "",
+        VITE_GEMINI_API_KEY: VITE_GEMINI_API_KEY || GEMINI_API_KEY || "",
       },
       APP_VERSION: JSON.stringify(process.env.npm_package_version),
     },

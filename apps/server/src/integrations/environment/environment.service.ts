@@ -79,6 +79,10 @@ export class EnvironmentService {
     return this.configService.get<string>('GOTENBERG_URL');
   }
 
+  isDisableLogin(): boolean {
+    return this.configService.get<string>('DISABLE_LOGIN', 'false') === 'true';
+  }
+
   getStorageDriver(): string {
     return this.configService.get<string>('STORAGE_DRIVER', 'local');
   }
@@ -151,7 +155,7 @@ export class EnvironmentService {
   }
 
   getMailFromName(): string {
-    return this.configService.get<string>('MAIL_FROM_NAME', 'Docmost');
+    return this.configService.get<string>('MAIL_FROM_NAME', '0x7 Research Center');
   }
 
   getMailBlockedRecipientDomains(): string[] {

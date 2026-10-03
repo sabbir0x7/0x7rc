@@ -7,7 +7,7 @@ export function useSettingsNavigation() {
   const origin = useAtomValue(settingsOriginAtom);
 
   const goBack = () => {
-    navigate(origin ?? "/home", { replace: true });
+    navigate(origin ?? "/dashboard", { replace: true });
   };
 
   return { goBack };

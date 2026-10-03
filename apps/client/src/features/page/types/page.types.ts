@@ -13,6 +13,8 @@ export interface IPage {
   workspaceId: string;
   isLocked: boolean;
   isBase: boolean;
+  isPublished?: boolean;
+  projectId?: string;
   lastUpdatedById: string;
   createdAt: Date;
   updatedAt: Date;
@@ -81,12 +83,15 @@ export interface SidebarPagesParams {
 
 export interface IPageInput {
   pageId: string;
+  spaceId?: string;
   title: string;
   parentPageId: string;
   icon: string;
   coverPhoto: string;
   position: string;
   isLocked: boolean;
+  isPublished?: boolean;
+  projectId?: string;
 }
 
 export interface IExportPageParams {

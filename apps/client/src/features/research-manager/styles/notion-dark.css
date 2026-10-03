@@ -1,0 +1,437 @@
+/* ==========================================================================
+   Greenish Black (Dark Forest / Cyber-Emerald Black) Design System
+   Architecture Tokens:
+     Canvas / Deep Body:     #080f0c (Deep OLED black with dark forest hue)
+     Sidebar / Topbar:       #0d1713 (Sleek greenish black navigation surface)
+     Cards / Bento Surfaces: #111f18 (Elevated forest card surface)
+     Secondary Surfaces:     #15261e (Elevated hover / tag surface)
+     Subtle Borders:         #1c3327 (Refined dark emerald border)
+     Hover Surface:          #162820
+     Active Pill / Selection:#1a3025 (Border: #10b981, Text: #34d399)
+     Text Primary:           #f0fdf4 / #ffffff (Crisp mint-white for maximum contrast)
+     Text Secondary:         #8fa89b (Soft sage-mint, zero eye strain)
+     Text Muted:             #5c7367 (Forest sage)
+     Emerald Accent:         #10b981 / #34d399 (Vibrant glowing accents)
+   ========================================================================== */
+
+/* 1. Global Document & Shell Dark Mode */
+html[data-mantine-color-scheme="dark"],
+[data-mantine-color-scheme="dark"] body {
+  background-color: #080f0c !important;
+  background-image: none !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] #root,
+[data-mantine-color-scheme="dark"] .app-shell {
+  background-color: #080f0c !important;
+  background-image: none !important;
+  color: #f0fdf4 !important;
+}
+
+/* 2. Text Editor Page View (/s/:spaceSlug/p/:slugId) */
+[data-mantine-color-scheme="dark"] main,
+[data-mantine-color-scheme="dark"] .mantine-AppShell-main {
+  background-color: #080f0c !important;
+  background-image: none !important;
+}
+
+[data-mantine-color-scheme="dark"] .mantine-AppShell-header,
+[data-mantine-color-scheme="dark"] .mantine-AppShell-navbar,
+[data-mantine-color-scheme="dark"] .mantine-AppShell-aside {
+  background-color: #0d1713 !important;
+  border-color: #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Container-root {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+[data-mantine-color-scheme="dark"] .ProseMirror {
+  background-color: transparent !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .ProseMirror p {
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .page-title,
+[data-mantine-color-scheme="dark"] .page-title textarea,
+[data-mantine-color-scheme="dark"] .page-title h1,
+[data-mantine-color-scheme="dark"] .page-title [contenteditable="true"] {
+  background-color: transparent !important;
+  color: #ffffff !important;
+}
+
+[data-mantine-color-scheme="dark"] .page-title textarea::placeholder {
+  color: #5c7367 !important;
+}
+
+/* Page Header (Breadcrumbs bar) */
+[data-mantine-color-scheme="dark"] [class*="page-header_header"] {
+  background-color: #0d1713 !important;
+  border-bottom: 1px solid #1c3327 !important;
+}
+
+/* 3. Research Team Manager / Dashboard (/dashboard & /workspace) */
+
+/* Left Sidebar - Edge-to-edge Solid Greenish Black */
+[data-mantine-color-scheme="dark"] aside,
+[data-mantine-color-scheme="dark"] .app-shell aside,
+[data-mantine-color-scheme="dark"] aside.fixed,
+[data-mantine-color-scheme="dark"] .rc-sidebar-desktop,
+[data-mantine-color-scheme="dark"] [class*="rc-sidebar"] {
+  background-color: #0d1713 !important;
+  background-image: none !important;
+  background: #0d1713 !important;
+  border-color: #1c3327 !important;
+  box-shadow: none !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside .brand-wordmark {
+  color: #f0fdf4 !important;
+  -webkit-text-fill-color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside .brand-code {
+  color: #34d399 !important;
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.4);
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside nav button {
+  color: #8fa89b !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside nav button:hover {
+  background-color: #162820 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside nav button.bg-indigo-50 {
+  background-color: #1a3025 !important;
+  color: #34d399 !important;
+  border: 1px solid #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside nav button.bg-rose-50 {
+  background-color: #2b1519 !important;
+  color: #fca5a5 !important;
+  border: 1px solid #4c1d24 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside .text-slate-400 {
+  color: #799887 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside button.text-slate-600 {
+  color: #8fa89b !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside button.text-slate-600:hover {
+  color: #f0fdf4 !important;
+  background-color: #162820 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell aside button.bg-slate-100 {
+  background-color: #162820 !important;
+  color: #f0fdf4 !important;
+  border: 1px solid #1c3327 !important;
+}
+
+/* Sidebar Team ID Widget */
+[data-mantine-color-scheme="dark"] .app-shell .border-indigo-100 {
+  border-color: #1c3327 !important;
+  background: #111f18 !important;
+  background-image: none !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .border-indigo-100 code {
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .border-indigo-100 button {
+  background-color: #162820 !important;
+  border-color: #1c3327 !important;
+  color: #34d399 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .border-indigo-100 button:hover {
+  background-color: #1d3328 !important;
+  color: #f0fdf4 !important;
+}
+
+/* Topbar & Sticky Headers */
+[data-mantine-color-scheme="dark"] .app-shell .sticky,
+[data-mantine-color-scheme="dark"] .app-shell header {
+  background-color: rgba(13, 23, 19, 0.95) !important;
+  border-color: #1c3327 !important;
+}
+
+/* Bento Cards / Surfaces (Stats, Projects, Notice board) */
+[data-mantine-color-scheme="dark"] .app-shell .bg-white,
+[data-mantine-color-scheme="dark"] .app-shell .bg-white\/90,
+[data-mantine-color-scheme="dark"] .app-shell .bg-white\/95,
+[data-mantine-color-scheme="dark"] .app-shell .bg-white\/70,
+[data-mantine-color-scheme="dark"] .app-shell .bg-white\/80 {
+  background-color: #111f18 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .bg-slate-50,
+[data-mantine-color-scheme="dark"] .app-shell .bg-slate-100,
+[data-mantine-color-scheme="dark"] .app-shell .bg-slate-200\/70 {
+  background-color: #15261e !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .border-slate-100,
+[data-mantine-color-scheme="dark"] .app-shell .border-slate-200,
+[data-mantine-color-scheme="dark"] .app-shell .border-slate-300 {
+  border-color: #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .shadow-sm,
+[data-mantine-color-scheme="dark"] .app-shell .shadow-md,
+[data-mantine-color-scheme="dark"] .app-shell .shadow-lg,
+[data-mantine-color-scheme="dark"] .app-shell .shadow-xl {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.55) !important;
+}
+
+/* Typography Hierarchy in Dark Mode - Crisp Mint-White against Greenish Black */
+[data-mantine-color-scheme="dark"] .app-shell h1,
+[data-mantine-color-scheme="dark"] .app-shell h2,
+[data-mantine-color-scheme="dark"] .app-shell h3,
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-950,
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-900,
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-800 {
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell p,
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-700,
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-600,
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-500 {
+  color: #8fa89b !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .text-slate-400 {
+  color: #5c7367 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .text-indigo-600,
+[data-mantine-color-scheme="dark"] .app-shell .text-indigo-700 {
+  color: #34d399 !important;
+}
+
+/* Interactive Elements, Inputs & Controls */
+[data-mantine-color-scheme="dark"] .app-shell input,
+[data-mantine-color-scheme="dark"] .app-shell textarea,
+[data-mantine-color-scheme="dark"] .app-shell select {
+  background-color: #0b1410 !important;
+  border-color: #1c3327 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell input::placeholder,
+[data-mantine-color-scheme="dark"] .app-shell textarea::placeholder {
+  color: #4a6155 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell input:focus,
+[data-mantine-color-scheme="dark"] .app-shell textarea:focus {
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
+}
+
+/* Notice Board & Feed Cards */
+[data-mantine-color-scheme="dark"] .app-shell .bg-slate-950 {
+  background-color: #080f0c !important;
+  border-bottom: 1px solid #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .border-indigo-100.bg-indigo-50\/70,
+[data-mantine-color-scheme="dark"] .app-shell .border-amber-100.bg-amber-50\/80,
+[data-mantine-color-scheme="dark"] .app-shell .border-emerald-100.bg-emerald-50\/70,
+[data-mantine-color-scheme="dark"] .app-shell .border-rose-100.bg-rose-50\/70 {
+  background-color: #111f18 !important;
+  border-color: #1c3327 !important;
+}
+
+/* Workspace Navigation & Tab Buttons */
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button,
+[data-mantine-color-scheme="dark"] .app-shell .border-b button {
+  color: #8fa89b !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button:hover,
+[data-mantine-color-scheme="dark"] .app-shell .border-b button:hover {
+  background-color: #162820 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button.border-indigo-600,
+[data-mantine-color-scheme="dark"] .app-shell .border-b button.border-indigo-600 {
+  border-color: #10b981 !important;
+  color: #34d399 !important;
+  background-color: #1a3025 !important;
+  font-weight: 700 !important;
+}
+
+/* Modals & Dialogs */
+[data-mantine-color-scheme="dark"] div[role="dialog"] {
+  background-color: #111f18 !important;
+  border: 1px solid #1c3327 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] div[role="dialog"] .bg-white\/95,
+[data-mantine-color-scheme="dark"] div[role="dialog"] .bg-white {
+  background-color: #111f18 !important;
+  border-color: #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] div[role="dialog"] .border-slate-100,
+[data-mantine-color-scheme="dark"] div[role="dialog"] .border-slate-200 {
+  border-color: #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] div[role="dialog"] button.hover\:bg-slate-100:hover {
+  background-color: #162820 !important;
+}
+
+/* Buttons in Dark Mode */
+[data-mantine-color-scheme="dark"] .app-shell button.bg-slate-100,
+[data-mantine-color-scheme="dark"] .app-shell button.bg-slate-50 {
+  background-color: #162820 !important;
+  color: #f0fdf4 !important;
+  border-color: #1c3327 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell button.bg-slate-100:hover,
+[data-mantine-color-scheme="dark"] .app-shell button.bg-slate-50:hover {
+  background-color: #1e362a !important;
+  color: #ffffff !important;
+}
+
+/* Scrollbar Greenish Dark Styling */
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb {
+  background: rgba(52, 211, 153, 0.2);
+  border-radius: 4px;
+}
+
+[data-mantine-color-scheme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(52, 211, 153, 0.38);
+}
+
+/* Sidebar Theme Switcher */
+[data-mantine-color-scheme="dark"] .sidebar-theme-toggle {
+  background-color: #111f18 !important;
+  border: 1px solid #1c3327 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .sidebar-theme-toggle:hover {
+  background-color: #162820 !important;
+  border-color: #274737 !important;
+  color: #34d399 !important;
+}
+
+[data-mantine-color-scheme="dark"] .sidebar-theme-toggle .badge-theme {
+  background-color: #080f0c !important;
+  border: 1px solid #1c3327 !important;
+  color: #34d399 !important;
+}
+
+/* Dashboard Header Theme Switcher */
+[data-mantine-color-scheme="dark"] .dashboard-theme-toggle {
+  background-color: #111f18 !important;
+  border: 1px solid #1c3327 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .dashboard-theme-toggle:hover {
+  background-color: #162820 !important;
+  border-color: #274737 !important;
+  color: #34d399 !important;
+}
+
+/* 4. Project Workspace Fine-Grained Refinements */
+
+/* Dashed team slot cards (e.g., Available Team Slot 2 of 6) */
+[data-mantine-color-scheme="dark"] .app-shell .border-dashed {
+  border-color: #1c3327 !important;
+  background-color: #0d1713 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .border-dashed:hover {
+  border-color: #10b981 !important;
+  background-color: #111f18 !important;
+}
+
+/* Online & Status badges */
+[data-mantine-color-scheme="dark"] .app-shell .bg-emerald-50 {
+  background-color: #064e3b !important;
+  color: #34d399 !important;
+}
+
+[data-mantine-color-scheme="dark"] .app-shell .bg-indigo-100 {
+  background-color: #162820 !important;
+  color: #34d399 !important;
+}
+
+/* Active tab button pill & underline */
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button[data-active="true"],
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button.border-indigo-600,
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button.border-indigo-500,
+[data-mantine-color-scheme="dark"] .app-shell nav[aria-label="Tabs"] button.bg-slate-900 {
+  background-color: #1a3025 !important;
+  color: #34d399 !important;
+  border-color: #10b981 !important;
+}
+
+/* Copy Team ID button */
+[data-mantine-color-scheme="dark"] .app-shell button.text-indigo-600,
+[data-mantine-color-scheme="dark"] .app-shell button.text-indigo-700 {
+  color: #34d399 !important;
+}
+
+/* Progress bar fill */
+[data-mantine-color-scheme="dark"] .app-shell .bg-indigo-600 {
+  background-color: #10b981 !important;
+}
+
+/* Dropdowns, Menus & Mantine Select */
+[data-mantine-color-scheme="dark"] .mantine-Menu-dropdown,
+[data-mantine-color-scheme="dark"] .mantine-Select-dropdown,
+[data-mantine-color-scheme="dark"] .mantine-Popover-dropdown {
+  background-color: #111f18 !important;
+  border-color: #1c3327 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] .mantine-Menu-item:hover {
+  background-color: #162820 !important;
+}
+
+/* Tables in dark mode */
+[data-mantine-color-scheme="dark"] table,
+[data-mantine-color-scheme="dark"] tr,
+[data-mantine-color-scheme="dark"] th,
+[data-mantine-color-scheme="dark"] td {
+  border-color: #1c3327 !important;
+  color: #f0fdf4 !important;
+}
+
+[data-mantine-color-scheme="dark"] tbody tr:hover {
+  background-color: #15261e !important;
+}
+

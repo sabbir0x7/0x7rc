@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { ScrollArea, Text, Divider, Modal, UnstyledButton, Tooltip } from "@mantine/core";
 import {
-  IconHome,
   IconClock,
   IconStar,
   IconLayoutGrid,
   IconSettings,
   IconUserPlus,
   IconTemplate,
+  IconLayoutDashboard,
 } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import classes from "./global-sidebar.module.css";
@@ -34,9 +34,8 @@ export default function GlobalSidebar() {
   const hasTemplates = useHasFeature(Feature.TEMPLATES);
   const upgradeLabel = useUpgradeLabel();
   const mainNavItems = [
-    { label: "Home", icon: IconHome, path: "/home" },
+    { label: "Dashboard", icon: IconLayoutDashboard, path: "/dashboard" },
     { label: "Favorites", icon: IconStar, path: "/favorites" },
-    { label: "Spaces", icon: IconLayoutGrid, path: "/spaces" },
     {
       label: "Templates",
       icon: IconTemplate,
@@ -103,49 +102,6 @@ export default function GlobalSidebar() {
           )}
         </div>
 
-        <Divider my="xs" />
-        <div className={classes.section}>
-          <Text component="h2" className={classes.sectionHeader}>{t("Favorite spaces")}</Text>
-          {!isFavoritesPending && sortedFavoriteSpaces.length === 0 ? (
-            <Text size="xs" c="dimmed" pl="xs" py={4}>
-              {t("Favorite spaces appear here")}
-            </Text>
-          ) : (
-            <>
-              {sortedFavoriteSpaces.slice(0, 10).map((fav) => (
-                <Link
-                  key={fav.id}
-                  className={classes.spaceItem}
-                  to={getSpaceUrl(fav.space!.slug)}
-                  onClick={handleNavClick}
-                >
-                  <CustomAvatar
-                    name={fav.space!.name}
-                    avatarUrl={fav.space!.logo}
-                    type={AvatarIconType.SPACE_ICON}
-                    color="initials"
-                    variant="filled"
-                    size={20}
-                  />
-                  <Text size="sm" fw={500} lineClamp={1}>
-                    {fav.space!.name}
-                  </Text>
-                </Link>
-              ))}
-              {sortedFavoriteSpaces.length > 10 && (
-                <Link
-                  className={classes.spaceItem}
-                  to="/spaces"
-                  onClick={handleNavClick}
-                >
-                  <Text size="xs" c="dimmed">
-                    {t("View all")}
-                  </Text>
-                </Link>
-              )}
-            </>
-          )}
-        </div>
 
       </ScrollArea>
 

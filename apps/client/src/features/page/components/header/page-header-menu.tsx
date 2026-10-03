@@ -2,6 +2,7 @@ import { ActionIcon, Group, Menu, Text, ThemeIcon, Tooltip } from "@mantine/core
 import {
   IconArrowRight,
   IconArrowsHorizontal,
+  IconColumns,
   IconDots,
   IconEye,
   IconEyeOff,
@@ -21,6 +22,7 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { useAsideTriggerProps } from "@/hooks/use-toggle-aside.tsx";
 import { useAtom, useAtomValue } from "jotai";
+import { isSplitViewOpenAtom } from "@/features/page/atoms/research-split-atoms";
 import { historyAtoms } from "@/features/page-history/atoms/history-atoms.ts";
 import { useDisclosure, useHotkeys } from "@mantine/hooks";
 import { useClipboard } from "@/hooks/use-clipboard";
@@ -95,6 +97,8 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
     [],
   );
 
+  const [isSplitViewOpen, setIsSplitViewOpen] = useAtom(isSplitViewOpenAtom);
+
   if (isDeleted) {
     return null;
   }
@@ -106,6 +110,27 @@ export default function PageHeaderMenu({ readOnly }: PageHeaderMenuProps) {
       {!readOnly && !page?.isBase && <PageEditModeToggle size="xs" />}
 
       <PageShareModal readOnly={readOnly} />
+
+      {!page?.isBase && (
+        <Tooltip
+          label={
+            isSplitViewOpen
+              ? t("Close Split View")
+              : t("Research Split View (PDF + Notes)")
+          }
+          openDelay={250}
+          withArrow
+        >
+          <ActionIcon
+            variant={isSplitViewOpen ? "filled" : "subtle"}
+            color={isSplitViewOpen ? "blue" : "dark"}
+            aria-label={t("Research Split View")}
+            onClick={() => setIsSplitViewOpen((prev) => !prev)}
+          >
+            <IconColumns size={20} stroke={2} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       <Tooltip label={t("Comments")} openDelay={250} withArrow>
         <ActionIcon
@@ -141,6 +166,7 @@ interface PageActionMenuProps {
 }
 function PageActionMenu({ readOnly }: PageActionMenuProps) {
   const { t } = useTranslation();
+  const [isSplitViewOpen, setIsSplitViewOpen] = useAtom(isSplitViewOpenAtom);
   const [, setHistoryModalOpen] = useAtom(historyAtoms);
   const clipboard = useClipboard({ timeout: 500 });
   const { pageSlug, spaceSlug } = useParams();
@@ -296,6 +322,15 @@ function PageActionMenu({ readOnly }: PageActionMenuProps) {
               onClick={openHistoryModal}
             >
               {t("Page history")}
+            </Menu.Item>
+          )}
+
+          {!page?.isBase && (
+            <Menu.Item
+              leftSection={<IconColumns size={16} />}
+              onClick={() => setIsSplitViewOpen((prev) => !prev)}
+            >
+              {isSplitViewOpen ? t("Close Split View") : t("Research Split View")}
             </Menu.Item>
           )}
 

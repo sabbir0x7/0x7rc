@@ -43,6 +43,8 @@ export class PageRepo {
     'updatedAt',
     'deletedAt',
     'contributorIds',
+    'isPublished',
+    'projectId',
   ];
 
   async findById(
@@ -729,5 +731,21 @@ export class PageRepo {
       )
       .orderBy('position', (ob) => ob.collate('C').asc())
       .executeTakeFirst();
+  }
+
+  async findResearchNotes(workspaceId: string, projectId?: string) {
+    let query = this.db
+      .selectFrom('pages')
+      .select(this.baseFields)
+      .select((eb) => this.withCreator(eb))
+      .select((eb) => this.withSpace(eb))
+      .where('workspaceId', '=', workspaceId)
+      .where('deletedAt', 'is', null);
+
+    if (projectId) {
+      query = query.where('projectId', '=', projectId);
+    }
+
+    return query.orderBy('createdAt', 'desc').execute();
   }
 }

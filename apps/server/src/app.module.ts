@@ -34,15 +34,15 @@ import { EncryptionModule } from './integrations/encryption/encryption.module';
 const enterpriseModules = [];
 try {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
-  if (require('./ee/ee.module')?.EeModule) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    enterpriseModules.push(require('./ee/ee.module')?.EeModule);
+  const ee = require('./ee/ee.module');
+  if (ee?.EeModule) {
+    enterpriseModules.push(ee.EeModule);
+    console.log('Enterprise EeModule loaded successfully!');
+  } else {
+    console.log('EeModule not found in require("./ee/ee.module")');
   }
 } catch (err) {
-  if (process.env.CLOUD === 'true') {
-    console.warn('Failed to load enterprise modules. Exiting program.\n', err);
-    process.exit(1);
-  }
+  console.warn('Failed to load enterprise modules:', err);
 }
 
 @Module({

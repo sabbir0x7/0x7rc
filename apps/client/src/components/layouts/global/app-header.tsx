@@ -36,7 +36,7 @@ import { NotificationPopover } from "@/features/notification/components/notifica
 import { workspaceAtom } from "@/features/user/atoms/current-user-atom.ts";
 
 const links = [
-  { link: APP_ROUTE.HOME, label: "Home" },
+  { link: "/dashboard", label: "Dashboard" },
 ];
 
 export function AppHeader() {
@@ -84,11 +84,11 @@ export function AppHeader() {
             />
           </Tooltip>
 
-          <Link to="/home" className={classes.brand} aria-label="Docmost">
+          <Link to="/dashboard" className={classes.brand} aria-label="0x7 Research Center">
             <Box hiddenFrom="sm" className={classes.brandIcon}>
               <img
                 src="/icons/favicon-32x32.png"
-                alt="Docmost"
+                alt="0x7 Research Center"
                 width={22}
                 height={22}
               />
@@ -99,7 +99,7 @@ export function AppHeader() {
               style={{ userSelect: "none" }}
               visibleFrom="sm"
             >
-              Docmost
+              0x7 Research Center
             </Text>
           </Link>
 

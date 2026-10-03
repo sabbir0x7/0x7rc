@@ -115,7 +115,6 @@ export function FullEditor({
         content={content}
         canComment={canComment}
       />
-      <EmptyPageGetStarted pageId={pageId} editable={editable} />
     </Container>
   );
 }

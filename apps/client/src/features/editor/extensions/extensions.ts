@@ -68,6 +68,7 @@ import {
   Footnote,
   FootnoteReference,
 } from "@docmost/editor-ext";
+import { Mindmap } from "@/features/editor/components/mindmap/mindmap-extension";
 import {
   randomElement,
   userColors,
@@ -427,6 +428,7 @@ export const mainExtensions = [
   Footnotes,
   Footnote,
   FootnoteReference,
+  Mindmap,
   AutoJoiner.configure({
     elementsToJoin: [],
   }),

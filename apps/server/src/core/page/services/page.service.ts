@@ -145,6 +145,8 @@ export class PageService {
       creatorId: userId,
       workspaceId: workspaceId,
       lastUpdatedById: userId,
+      isPublished: createPageDto.isPublished ?? false,
+      projectId: createPageDto.projectId ?? null,
       isBase,
       content,
       textContent,
@@ -235,6 +237,12 @@ export class PageService {
       {
         title: updatePageDto.title,
         icon: updatePageDto.icon,
+        ...(updatePageDto.isPublished !== undefined
+          ? { isPublished: updatePageDto.isPublished }
+          : {}),
+        ...(updatePageDto.projectId !== undefined
+          ? { projectId: updatePageDto.projectId }
+          : {}),
         lastUpdatedById: user.id,
         updatedAt: new Date(),
         contributorIds: contributorIds,
@@ -1200,5 +1208,56 @@ export class PageService {
     }
 
     return pages.filter((p) => includedIds.has(p.id));
+  }
+
+  async getResearchNotes(
+    workspaceId: string,
+    currentUserId: string,
+    projectId?: string,
+  ) {
+    const rawPages = await this.pageRepo.findResearchNotes(workspaceId, projectId);
+
+    const notes = rawPages.map((p) => {
+      let preview = '';
+      if (p.textContent) {
+        preview = p.textContent.slice(0, 140).trim();
+      }
+
+      return {
+        id: p.id,
+        slugId: p.slugId,
+        title: p.title || 'Untitled Note',
+        isPublished: p.isPublished === true,
+        projectId: p.projectId || null,
+        spaceSlug: p.space?.slug || 'general',
+        spaceId: p.spaceId,
+        createdAt: p.createdAt,
+        updatedAt: p.updatedAt,
+        author: {
+          id: p.creatorId || currentUserId,
+          name: p.creator?.name || 'Researcher',
+          avatar: p.creator?.avatarUrl || '',
+        },
+        preview: preview || 'Empty note content...',
+      };
+    });
+
+    const totalNotes = notes.length;
+    const yourNotesCount = notes.filter((n) => n.author.id === currentUserId && !n.isPublished).length;
+    const publishedNotesCount = notes.filter((n) => n.isPublished).length;
+
+    const memberCounts: Record<string, number> = {};
+    for (const note of notes) {
+      const authorId = note.author.id;
+      memberCounts[authorId] = (memberCounts[authorId] || 0) + 1;
+    }
+
+    return {
+      notes,
+      totalNotes,
+      yourNotesCount,
+      publishedNotesCount,
+      memberCounts,
+    };
   }
 }

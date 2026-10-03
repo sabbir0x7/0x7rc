@@ -3,6 +3,7 @@ import type { Editor } from "@tiptap/react";
 import { ActionIcon, Badge, Menu, Tooltip } from "@mantine/core";
 import {
   IconAppWindow,
+  IconBrain,
   IconCalendar,
   IconCaretRightFilled,
   IconChevronDown,
@@ -158,6 +159,12 @@ export const MoreInsertsGroup: FC<Props> = ({ editor, templateMode }) => {
 
         <Menu.Divider />
         <Menu.Label>{t("Diagrams")}</Menu.Label>
+        <Menu.Item
+          leftSection={<IconBrain size={16} />}
+          onClick={() => editor.chain().focus().setMindmap().run()}
+        >
+          {t("Mind map")}
+        </Menu.Item>
         <Menu.Item
           leftSection={<IconMermaid size={16} />}
           onClick={() =>

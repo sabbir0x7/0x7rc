@@ -60,6 +60,33 @@ export class UserRepo {
       .executeTakeFirst();
   }
 
+  async findFirst(workspaceId?: string): Promise<User | undefined> {
+    let query = this.db
+      .selectFrom('users')
+      .select(this.baseFields)
+      .where('deletedAt', 'is', null);
+
+    if (workspaceId) {
+      query = query.where('workspaceId', '=', workspaceId);
+    }
+
+    return query.orderBy('createdAt', 'asc').executeTakeFirst();
+  }
+
+  async findFirstAdmin(workspaceId?: string): Promise<User | undefined> {
+    let query = this.db
+      .selectFrom('users')
+      .select(this.baseFields)
+      .where('deletedAt', 'is', null)
+      .where('role', 'in', ['owner', 'admin']);
+
+    if (workspaceId) {
+      query = query.where('workspaceId', '=', workspaceId);
+    }
+
+    return query.orderBy('createdAt', 'asc').executeTakeFirst();
+  }
+
   async findByEmail(
     email: string,
     workspaceId: string,

@@ -1,0 +1,214 @@
+/* 0x7 Research Center - Light Gray-and-White Glassmorphism Design System */
+@import "../../research-manager/styles/research-manager.css";
+
+:root {
+  --rc-bg: #E5E7EB;
+  --rc-glass-bg: rgba(255, 255, 255, 0.58);
+  --rc-glass-bg-subtle: rgba(255, 255, 255, 0.42);
+  --rc-glass-bg-elevated: rgba(255, 255, 255, 0.82);
+  --rc-glass-border: rgba(148, 163, 184, 0.22);
+  --rc-glass-border-focus: rgba(100, 116, 139, 0.45);
+  --rc-glass-inner-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  --rc-glass-shadow: 0 16px 36px -12px rgba(15, 23, 42, 0.06), 0 4px 12px -2px rgba(15, 23, 42, 0.03);
+  --rc-glass-shadow-lg: 0 24px 48px -12px rgba(15, 23, 42, 0.09), 0 8px 16px -4px rgba(15, 23, 42, 0.04);
+  
+  --rc-text-main: #0F172A;
+  --rc-text-muted: #475569;
+  --rc-text-subtle: #94A3B8;
+
+  --rc-btn-primary-bg: linear-gradient(180deg, #FFFFFF 0%, #E2E8F0 100%);
+  --rc-btn-primary-border: rgba(148, 163, 184, 0.35);
+  --rc-btn-primary-hover: linear-gradient(180deg, #F8FAFC 0%, #CBD5E1 100%);
+
+  --rc-accent-silver: #64748B;
+  --rc-accent-dark: #0F172A;
+  --rc-badge-bg: rgba(241, 245, 249, 0.8);
+  --rc-badge-border: rgba(203, 213, 225, 0.6);
+}
+
+html, body {
+  background-color: var(--rc-bg) !important;
+  color: var(--rc-text-main) !important;
+}
+
+.rc-app-container {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--rc-text-main);
+  background-color: var(--rc-bg) !important;
+  min-height: 100vh;
+  position: relative;
+}
+
+.rc-mono {
+  font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Glass Panels */
+.rc-glass-panel {
+  background: var(--rc-glass-bg);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid var(--rc-glass-border);
+  box-shadow: var(--rc-glass-inner-highlight), var(--rc-glass-shadow);
+  border-radius: 1rem;
+}
+
+.rc-glass-card {
+  background: var(--rc-glass-bg-subtle);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--rc-glass-border);
+  box-shadow: var(--rc-glass-inner-highlight);
+  border-radius: 0.75rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.rc-glass-card:hover {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.38);
+  transform: translateY(-1px);
+}
+
+.rc-glass-input {
+  background: rgba(255, 255, 255, 0.75);
+  border: 1px solid var(--rc-glass-border);
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+  color: var(--rc-text-main);
+  border-radius: 0.5rem;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.rc-glass-input:focus {
+  outline: none;
+  background: #FFFFFF;
+  border-color: var(--rc-glass-border-focus);
+  box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.15);
+}
+
+/* Buttons */
+.rc-btn-primary {
+  background: var(--rc-btn-primary-bg);
+  border: 1px solid var(--rc-btn-primary-border);
+  color: var(--rc-text-main);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  font-weight: 500;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-btn-primary:hover {
+  background: var(--rc-btn-primary-hover);
+  border-color: rgba(100, 116, 139, 0.45);
+  box-shadow: 0 2px 4px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.rc-btn-secondary {
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--rc-glass-border);
+  color: var(--rc-text-muted);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rc-btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--rc-text-main);
+  border-color: rgba(148, 163, 184, 0.35);
+}
+
+/* Cinematic Desaturated Gate Video */
+.rc-gate-video-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.rc-gate-video {
+  filter: grayscale(100%) contrast(1.02) brightness(1.08);
+  object-fit: cover;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.rc-content-layer {
+  position: relative;
+  z-index: 10;
+}
+
+/* Sidebar and Layout */
+.rc-sidebar-desktop {
+  width: 16rem;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  border-right: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(241, 245, 249, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  flex-shrink: 0;
+  display: block;
+}
+
+[data-mantine-color-scheme="dark"] .rc-sidebar-desktop {
+  background: #0d1713 !important;
+  border-right-color: #1c3327 !important;
+}
+
+.rc-topbar-mobile {
+  display: none;
+}
+
+@media (max-width: 860px) {
+  .rc-sidebar-desktop {
+    display: none;
+  }
+  .rc-topbar-mobile {
+    display: flex !important;
+  }
+}
+
+/* Custom Scrollbars */
+.rc-custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.rc-custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(226, 232, 240, 0.5);
+  border-radius: 9999px;
+}
+
+.rc-custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.4);
+  border-radius: 9999px;
+}
+
+.rc-custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.6);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

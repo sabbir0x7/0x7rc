@@ -92,7 +92,7 @@ export default function PublicSpaceDirectoryPage() {
 
           <div className={styles.topActions}>
             {currentUser?.user ? (
-              <Link to="/home" className={styles.signIn}>
+              <Link to="/dashboard" className={styles.signIn}>
                 {t("Open app")}
               </Link>
             ) : (
@@ -224,7 +224,7 @@ export default function PublicSpaceDirectoryPage() {
                 target="_blank"
                 rel="noreferrer"
               >
-                Docmost
+                0x7 Research Center
               </a>
             </div>
           </div>

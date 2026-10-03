@@ -1,5 +1,6 @@
 import {
   IconBlockquote,
+  IconBrain,
   IconCaretRightFilled,
   IconCheckbox,
   IconCode,
@@ -471,6 +472,21 @@ const CommandGroups: SlashMenuGroupedItemsType = {
           .setCodeBlock({ language: "mermaid" })
           .insertContent("flowchart LR\n" + "    A --> B")
           .run(),
+    },
+    {
+      title: "Mind map",
+      description: "Insert an interactive mind map",
+      searchTerms: [
+        "mindmap",
+        "mind map",
+        "brainstorm",
+        "freeplane",
+        "tree",
+        "diagram",
+      ],
+      icon: IconBrain,
+      command: ({ editor, range }: CommandProps) =>
+        editor.chain().focus().deleteRange(range).setMindmap().run(),
     },
     {
       title: "Draw.io (diagrams.net)",

@@ -8,10 +8,18 @@ import classes from "./pdf-view.module.css";
 import { useTranslation } from "react-i18next";
 import { isInternalFileUrl } from "@docmost/editor-ext";
 import {
+  IconColumns,
   IconFileTypePdf,
   IconPaperclip,
   IconTrash,
 } from "@tabler/icons-react";
+import { useAtom } from "jotai";
+import {
+  isSplitViewOpenAtom,
+  splitPdfNameAtom,
+  splitPdfUrlAtom,
+  splitViewModeAtom,
+} from "@/features/page/atoms/research-split-atoms";
 
 export default function PdfView(props: NodeViewProps) {
   const { t } = useTranslation();
@@ -19,10 +27,23 @@ export default function PdfView(props: NodeViewProps) {
   const { src, placeholder, width: nodeWidth, height: nodeHeight } = node.attrs;
   const [hasError, setHasError] = useState(false);
 
+  const [, setIsSplitOpen] = useAtom(isSplitViewOpenAtom);
+  const [, setSplitMode] = useAtom(splitViewModeAtom);
+  const [, setSplitUrl] = useAtom(splitPdfUrlAtom);
+  const [, setSplitName] = useAtom(splitPdfNameAtom);
+
   const safeSrc = useMemo(() => {
     if (!src || !isInternalFileUrl(src)) return null;
     return getFileUrl(src);
   }, [src]);
+
+  const handleOpenInSplitView = useCallback(() => {
+    if (!safeSrc) return;
+    setSplitUrl(safeSrc);
+    setSplitName(node.attrs.name || "Embedded Document.pdf");
+    setSplitMode("split");
+    setIsSplitOpen(true);
+  }, [safeSrc, node.attrs.name, setSplitUrl, setSplitName, setSplitMode, setIsSplitOpen]);
 
   const handleSelect = useCallback(() => {
     const pos = getPos();
@@ -150,32 +171,45 @@ export default function PdfView(props: NodeViewProps) {
               }
             }}
           />
-          {editor.isEditable && (
             <div className={classes.hoverMenu}>
-              <Tooltip position="top" label={t("Convert to attachment")} withinPortal>
+              <Tooltip position="top" label={t("Open in Research Split View")} withinPortal>
                 <ActionIcon
                   size="sm"
                   variant="filled"
-                  color="dark"
-                  onClick={handleConvertToAttachment}
-                  aria-label={t("Convert to attachment")}
+                  color="blue"
+                  onClick={handleOpenInSplitView}
+                  aria-label={t("Open in Research Split View")}
                 >
-                  <IconPaperclip size={14} />
+                  <IconColumns size={14} />
                 </ActionIcon>
               </Tooltip>
-              <Tooltip position="top" label={t("Delete")} withinPortal>
-                <ActionIcon
-                  size="sm"
-                  variant="filled"
-                  color="dark"
-                  onClick={handleDelete}
-                  aria-label={t("Delete")}
-                >
-                  <IconTrash size={14} />
-                </ActionIcon>
-              </Tooltip>
+              {editor.isEditable && (
+                <>
+                  <Tooltip position="top" label={t("Convert to attachment")} withinPortal>
+                    <ActionIcon
+                      size="sm"
+                      variant="filled"
+                      color="dark"
+                      onClick={handleConvertToAttachment}
+                      aria-label={t("Convert to attachment")}
+                    >
+                      <IconPaperclip size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                  <Tooltip position="top" label={t("Delete")} withinPortal>
+                    <ActionIcon
+                      size="sm"
+                      variant="filled"
+                      color="dark"
+                      onClick={handleDelete}
+                      aria-label={t("Delete")}
+                    >
+                      <IconTrash size={14} />
+                    </ActionIcon>
+                  </Tooltip>
+                </>
+              )}
             </div>
-          )}
         </ResizableWrapper>
       </div>
     </NodeViewWrapper>

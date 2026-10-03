@@ -8,6 +8,7 @@ import {
 } from "@mantine/core";
 import {
   IconArrowDown,
+  IconArrowLeft,
   IconDots,
   IconEye,
   IconEyeOff,
@@ -88,130 +89,49 @@ export function SpaceSidebar() {
   return (
     <>
       <div className={classes.navbar}>
-        <div
-          className={classes.section}
-          style={{
-            border: "none",
-            marginTop: 2,
-            marginBottom: 3,
-          }}
-        >
-          <Group
-            gap={4}
-            wrap="nowrap"
-            justify="space-between"
-            style={{ width: "100%" }}
+        <div style={{ padding: "8px 12px 6px" }}>
+          <UnstyledButton
+            component={Link}
+            to="/dashboard"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              padding: "7px 10px",
+              borderRadius: 8,
+              fontSize: 13,
+              fontWeight: 600,
+              color: "#4338ca",
+              background: "rgba(99, 102, 241, 0.08)",
+              border: "1px solid rgba(99, 102, 241, 0.2)",
+              textDecoration: "none",
+              transition: "all 0.15s ease",
+            }}
           >
-            <SwitchSpace
-              spaceName={space?.name}
-              spaceSlug={space?.slug}
-              spaceIcon={space?.logo}
-              isPublished={isBetaPublicSpaces() && space?.isPublished}
-            />
-          </Group>
+            <IconArrowLeft size={16} stroke={2} />
+            <span>{t("Back to Dashboard")}</span>
+          </UnstyledButton>
         </div>
-
-        <div className={classes.section}>
-          <div className={classes.menuItems}>
-            <UnstyledButton
-              component={Link}
-              to={getSpaceUrl(spaceSlug)}
-              className={clsx(
-                classes.menu,
-                location.pathname.toLowerCase() === getSpaceUrl(spaceSlug)
-                  ? classes.activeButton
-                  : "",
-              )}
-            >
-              <div className={classes.menuItemInner}>
-                <IconHome
-                  size={18}
-                  className={classes.menuItemIcon}
-                  stroke={2}
-                />
-                <span>{t("Overview")}</span>
-              </div>
-            </UnstyledButton>
-
-            <UnstyledButton
-              className={classes.menu}
-              onClick={searchSpotlight.open}
-            >
-              <div className={classes.menuItemInner}>
-                <IconSearch
-                  size={18}
-                  className={classes.menuItemIcon}
-                  stroke={2}
-                />
-                <span>{t("Search")}</span>
-              </div>
-            </UnstyledButton>
-
-            <UnstyledButton className={classes.menu} onClick={openSettings}>
-              <div className={classes.menuItemInner}>
-                <IconSettings
-                  size={18}
-                  className={classes.menuItemIcon}
-                  stroke={2}
-                />
-                <span>{t("Space settings")}</span>
-              </div>
-            </UnstyledButton>
-
-            {spaceAbility.can(
-              SpaceCaslAction.Manage,
-              SpaceCaslSubject.Page,
-            ) && (
-              <UnstyledButton
-                className={classes.menu}
-                onClick={() => {
-                  handleCreatePage();
-                  if (mobileSidebarOpened) {
-                    toggleMobileSidebar();
-                  }
-                }}
-              >
-                <div className={classes.menuItemInner}>
-                  <IconPlus
-                    size={18}
-                    className={classes.menuItemIcon}
-                    stroke={2}
-                  />
-                  <span>{t("New page")}</span>
-                </div>
-              </UnstyledButton>
-            )}
-          </div>
-        </div>
-
-        <div className={clsx(classes.section, classes.sectionPages)}>
+        <div className={clsx(classes.section, classes.sectionPages)} style={{ marginTop: 8 }}>
           <Group className={classes.pagesHeader} justify="space-between">
-            <Text size="xs" fw={500} c="dimmed">
+            <Text size="xs" fw={600} c="dimmed">
               {t("Pages")}
             </Text>
 
             <Group gap="xs">
-              <SpaceMenu
-                spaceId={space.id}
-                canManagePages={spaceAbility.can(
-                  SpaceCaslAction.Manage,
-                  SpaceCaslSubject.Page,
-                )}
-                onSpaceSettings={openSettings}
-              />
-
               {spaceAbility.can(
                 SpaceCaslAction.Manage,
                 SpaceCaslSubject.Page,
               ) && (
-                <Tooltip label={t("Create page")} withArrow position="right">
+                <Tooltip label={t("Create note")} withArrow position="right">
                   <ActionIcon
                     variant="default"
-                    size={18}
+                    size={20}
                     onClick={handleCreatePage}
-                    aria-label={t("Create page")}
+                    aria-label={t("Create note")}
                   >
-                    <IconPlus />
+                    <IconPlus size={14} />
                   </ActionIcon>
                 </Tooltip>
               )}

@@ -16,6 +16,11 @@ import { JwtType } from '../../core/auth/dto/jwt-payload';
 import { Reflector } from '@nestjs/core';
 import { EnvironmentService } from '../../integrations/environment/environment.service';
 import { addDays } from 'date-fns';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
+import * as jwt from 'jsonwebtoken';
+
+import { firstValueFrom, isObservable } from 'rxjs';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
@@ -24,11 +29,13 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   constructor(
     private reflector: Reflector,
     private environmentService: EnvironmentService,
+    private workspaceRepo: WorkspaceRepo,
+    private userRepo: UserRepo,
   ) {
     super();
   }
 
-  canActivate(context: ExecutionContext) {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
       context.getHandler(),
       context.getClass(),
@@ -38,7 +45,63 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    return super.canActivate(context);
+    if (this.environmentService.isDisableLogin()) {
+      const req = context.switchToHttp().getRequest();
+      const res = context.switchToHttp().getResponse();
+
+      try {
+        const canResult = super.canActivate(context);
+        const can = isObservable(canResult)
+          ? await firstValueFrom(canResult)
+          : await canResult;
+        if (can && req.user) {
+          return true;
+        }
+      } catch (err) {
+        // Fallback to auto-login
+      }
+
+      const workspace = await this.workspaceRepo.findFirst();
+      if (workspace) {
+        const defaultUser =
+          (await this.userRepo.findFirstAdmin(workspace.id)) ||
+          (await this.userRepo.findFirst(workspace.id));
+        if (defaultUser) {
+          req.user = { user: defaultUser, workspace, authType: JwtType.ACCESS };
+          if (req.raw) {
+            req.raw.workspaceId = workspace.id;
+            req.raw.workspace = workspace;
+          }
+          if (res && typeof res.setCookie === 'function' && !req.cookies?.authToken) {
+            try {
+              const token = jwt.sign(
+                {
+                  sub: defaultUser.id,
+                  email: defaultUser.email,
+                  workspaceId: defaultUser.workspaceId,
+                  type: JwtType.ACCESS,
+                },
+                this.environmentService.getAppSecret(),
+                { expiresIn: '30d' },
+              );
+              res.setCookie('authToken', token, {
+                httpOnly: true,
+                sameSite: 'lax',
+                path: '/',
+                expires: this.environmentService.getCookieExpiresIn(),
+                secure: this.environmentService.isHttps(),
+              });
+            } catch (e) {
+              // ignore
+            }
+          }
+          return true;
+        }
+      }
+    }
+
+    const result = super.canActivate(context);
+    return isObservable(result) ? await firstValueFrom(result) : await result;
   }
 
   handleRequest(err: any, user: any, info: any, ctx: ExecutionContext) {

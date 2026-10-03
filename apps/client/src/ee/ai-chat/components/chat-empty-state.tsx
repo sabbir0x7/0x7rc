@@ -65,7 +65,7 @@ export default function ChatEmptyState({ isStreaming, onSend, onStop }: Props) {
   return (
     <div className={classes.emptyState}>
       <IconSparkles size={48} stroke={1.5} className={classes.emptyStateIcon} />
-      <div className={classes.emptyStateBrand}>{t("Docmost AI")}</div>
+      <div className={classes.emptyStateBrand}>{t("0x7 Research Center AI")}</div>
       <h1 className={classes.emptyStateTitle}>
         {t("What can I help you with?")}
       </h1>

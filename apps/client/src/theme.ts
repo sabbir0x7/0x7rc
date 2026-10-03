@@ -34,10 +34,25 @@ const red: MantineColorsTuple = [
   "#93151b",
 ];
 
+// Greenish Black (Dark Forest / Cyber-Emerald Black) signature dark palette
+const dark: MantineColorsTuple = [
+  "#F0FDF4", // dark.0: primary text (crisp mint-white for maximum contrast against black)
+  "#8FA89B", // dark.1: secondary text / subtext (soft sage-mint, zero eye strain)
+  "#5C7367", // dark.2: muted text / timestamps
+  "#3A4D43", // dark.3: placeholder / subtle icon
+  "#1C3327", // dark.4: subtle borders (emerald-tinted dark border)
+  "#162820", // dark.5: hover / active surface
+  "#111F18", // dark.6: card / modal background
+  "#080F0C", // dark.7: body / canvas background (deep OLED black with forest green hue)
+  "#0D1713", // dark.8: sidebar / top header background
+  "#050A08", // dark.9: deepest black surface
+];
+
 export const theme = createTheme({
   colors: {
     blue,
     red,
+    dark,
   },
   defaultRadius: 'sm',
   components: {
@@ -127,7 +142,9 @@ export const mantineCssResolver: CSSVariablesResolver = (theme) => ({
   },
   dark: {
     ...v8CssVariablesResolver(theme).dark,
-    "--mantine-color-dark-light-color": "var(--mantine-color-gray-4)",
-    "--mantine-color-dark-light-hover": "var(--mantine-color-default-hover)",
+    "--mantine-color-body": "#080F0C",
+    "--mantine-color-text": "#F0FDF4",
+    "--mantine-color-dark-light-color": "#8FA89B",
+    "--mantine-color-dark-light-hover": "#162820",
   },
 });

@@ -51,6 +51,8 @@
     "katex": "0.16.40",
     "lowlight": "3.3.0",
     "mantine-form-zod-resolver": "1.3.0",
+    "markmap-lib": "^0.18.12",
+    "markmap-view": "^0.18.12",
     "mermaid": "11.16.1",
     "mitt": "3.0.1",
     "nanoid": "3.3.18",

@@ -33,4 +33,12 @@ export class CreatePageDto {
   @Transform(({ value }) => value?.toLowerCase() ?? 'json')
   @IsIn(['json', 'markdown', 'html'])
   format?: ContentFormat;
+
+  @IsOptional()
+  @IsBoolean()
+  isPublished?: boolean;
+
+  @IsOptional()
+  @IsString()
+  projectId?: string;
 }

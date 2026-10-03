@@ -1,0 +1,228 @@
+.splitContainer {
+  display: flex;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background: light-dark(#ffffff, #080f0c);
+}
+
+.normalContainer {
+  display: block;
+  width: 100%;
+  background: light-dark(#ffffff, #080f0c);
+}
+
+.normalNotesPane {
+  display: block;
+  width: 100%;
+  background: light-dark(#ffffff, #080f0c);
+}
+
+.pdfPane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: light-dark(#f8f9fa, #050a08);
+  overflow: hidden;
+  position: relative;
+  min-width: 0;
+}
+
+.pdfHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  height: 42px;
+  background: light-dark(#ffffff, #0d1713);
+  border-bottom: 1px solid light-dark(#e9ecef, #1c3327);
+  flex-shrink: 0;
+  user-select: none;
+  gap: 8px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.pdfViewerBody {
+  flex: 1;
+  width: 100%;
+  height: calc(100% - 42px);
+  position: relative;
+  overflow: auto;
+  background: light-dark(#f8f9fa, #050a08);
+}
+
+.zoomControlGroup {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: light-dark(#f1f3f5, #162820);
+  border-radius: 6px;
+  padding: 1px 3px;
+  border: 1px solid light-dark(#e9ecef, #1c3327);
+}
+
+.zoomButton {
+  font-weight: 600;
+  font-size: 11px;
+  padding-inline: 6px;
+  height: 22px;
+  border-radius: 4px;
+}
+
+.pdfCenteredWrapper {
+  width: 100%;
+  max-width: 960px;
+  height: 100%;
+  margin: 0 auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+  border-left: 1px solid light-dark(#dee2e6, #1c3327);
+  border-right: 1px solid light-dark(#dee2e6, #1c3327);
+  background: #ffffff;
+}
+
+.pdfFullWrapper {
+  width: 100%;
+  height: 100%;
+}
+
+.pdfIframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+/* Draggable Vertical Splitter */
+.splitter {
+  width: 10px;
+  flex: 0 0 10px;
+  cursor: col-resize;
+  background: light-dark(#f1f3f5, #0d1713);
+  border-left: 1px solid light-dark(#dee2e6, #1c3327);
+  border-right: 1px solid light-dark(#dee2e6, #1c3327);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  touch-action: none;
+  transition: background 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+  z-index: 10;
+  outline: none;
+}
+
+.splitter:focus-visible {
+  border-color: #10b981;
+}
+
+/* Wider invisible hit area for easy grabbing */
+.splitter::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  right: -4px;
+  z-index: 1;
+}
+
+.splitter:hover,
+.splitterActive {
+  background: light-dark(#e7f5ff, #182c22) !important;
+  border-color: #10b981 !important;
+}
+
+/* Splitter Grip - Modern tactile pill */
+.splitterGrip {
+  position: relative;
+  z-index: 2;
+  width: 4px;
+  height: 38px;
+  border-radius: 9999px;
+  background: light-dark(#adb5bd, #2d4a3b);
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.splitter:hover .splitterGrip,
+.splitterActive .splitterGrip {
+  background: #10b981;
+  height: 48px;
+  width: 5px;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.45);
+}
+
+/* Notes Pane */
+.notesPane {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+  background: light-dark(#ffffff, #080f0c);
+  position: relative;
+}
+
+.notesHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px;
+  height: 42px;
+  min-height: 42px;
+  background: light-dark(#ffffff, #0d1713);
+  border-bottom: 1px solid light-dark(#e9ecef, #1c3327);
+  flex-shrink: 0;
+  user-select: none;
+  overflow: hidden;
+  gap: 8px;
+}
+
+/* In Split Mode: Notes take compact split-pane layout */
+.notesPane[data-mode="split"] :global(.mantine-Container-root) {
+  margin: 16px auto !important;
+  min-height: auto !important;
+  max-width: 100% !important;
+  padding-inline: 16px !important;
+}
+
+.notesPane[data-mode="split"] :global(.ProseMirror) {
+  padding-left: 1.5rem !important;
+  padding-right: 1.5rem !important;
+}
+
+/* In Notes-Only Mode: Centered in the middle of screen like normal docmost page ("ager moto") */
+.notesPane[data-mode="notes-only"] :global(.mantine-Container-root) {
+  margin: 24px auto !important;
+  min-height: auto !important;
+  max-width: 900px !important;
+  width: 100% !important;
+  padding-inline: 16px !important;
+}
+
+.notesPane[data-mode="notes-only"] :global(.ProseMirror) {
+  padding-left: 3rem !important;
+  padding-right: 3rem !important;
+}
+
+
+/* Empty State / PDF Picker in left pane */
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+.emptyCard {
+  width: 100%;
+  max-width: 440px;
+  padding: 24px;
+  border-radius: 12px;
+  background: light-dark(#ffffff, #111f18);
+  border: 1px solid light-dark(#dee2e6, #1c3327);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}

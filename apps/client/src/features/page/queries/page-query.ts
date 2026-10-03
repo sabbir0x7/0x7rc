@@ -21,6 +21,9 @@ import {
   getAllSidebarPages,
   getDeletedPages,
   restorePage,
+  togglePagePublish,
+  getResearchNotes,
+  IResearchNotesResponse,
 } from "@/features/page/services/page-service";
 import {
   IMovePage,
@@ -437,6 +440,9 @@ export function invalidateOnCreatePage(data: Partial<IPage>) {
   queryClient.invalidateQueries({
     queryKey: ["recent-changes", data.spaceId],
   });
+  queryClient.invalidateQueries({
+    queryKey: ["research-notes"],
+  });
 }
 
 export function invalidateOnUpdatePage(
@@ -621,4 +627,53 @@ export function invalidateOnDeletePage(pageId: string) {
   queryClient.invalidateQueries({
     queryKey: ["recent-changes"],
   });
+
+  queryClient.invalidateQueries({
+    queryKey: ["research-notes"],
+  });
 }
+
+export function useTogglePublishMutation() {
+  const { t } = useTranslation();
+  return useMutation({
+    mutationFn: ({
+      pageId,
+      isPublished,
+    }: {
+      pageId: string;
+      isPublished: boolean;
+    }) => togglePagePublish(pageId, isPublished),
+    onSuccess: (data) => {
+      notifications.show({
+        message: data.isPublished
+          ? t("Note published to team")
+          : t("Note reverted to private draft"),
+        color: data.isPublished ? "teal" : "gray",
+      });
+      queryClient.setQueriesData<IPage>({ queryKey: ["pages"] }, (old) => {
+        if (!old) return old;
+        if (old.id === data.pageId || old.slugId === data.pageId) {
+          return { ...old, isPublished: data.isPublished };
+        }
+        return old;
+      });
+      queryClient.invalidateQueries({ queryKey: ["pages"] });
+      queryClient.invalidateQueries({ queryKey: ["research-notes"] });
+    },
+    onError: () => {
+      notifications.show({
+        message: t("Failed to update note publish status"),
+        color: "red",
+      });
+    },
+  });
+}
+
+export function useResearchNotesQuery(projectId?: string) {
+  return useQuery<IResearchNotesResponse>({
+    queryKey: ["research-notes", projectId],
+    queryFn: () => getResearchNotes(projectId),
+    refetchInterval: 5000,
+  });
+}
+

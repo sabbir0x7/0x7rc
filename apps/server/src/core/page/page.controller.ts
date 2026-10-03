@@ -374,6 +374,36 @@ export class PageController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Post('toggle-publish')
+  async togglePublish(
+    @Body() dto: { pageId: string; isPublished: boolean },
+    @AuthUser() user: User,
+  ) {
+    const page = await this.pageRepo.findById(dto.pageId);
+    if (!page || page.deletedAt) {
+      throw new NotFoundException('Page not found');
+    }
+    await this.pageAccessService.validateCanEdit(page, user);
+
+    await this.pageRepo.updatePage(
+      { isPublished: dto.isPublished },
+      page.id,
+    );
+
+    return { success: true, isPublished: dto.isPublished, pageId: page.id };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('research-notes')
+  async getResearchNotes(
+    @Body() dto: { projectId?: string; spaceId?: string },
+    @AuthUser() user: User,
+    @AuthWorkspace() workspace: Workspace,
+  ) {
+    return this.pageService.getResearchNotes(workspace.id, user.id, dto.projectId);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('restore')
   async restore(
     @Body() pageIdDto: PageIdDto,

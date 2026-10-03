@@ -8,7 +8,7 @@ export const useRedirectToCloudSelect = () => {
   const pathname = useLocation().pathname;
 
   useEffect(() => {
-    const pathsToRedirect = ["/login", "/home"];
+    const pathsToRedirect = ["/login", "/dashboard"];
     if (isCloud() && pathsToRedirect.includes(pathname)) {
       const frontendUrl = getAppUrl();
       const serverUrl = getServerAppUrl();

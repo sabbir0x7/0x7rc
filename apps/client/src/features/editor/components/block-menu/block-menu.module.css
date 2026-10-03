@@ -1,0 +1,38 @@
+.dropdown {
+  min-width: 240px;
+  max-width: 280px;
+  padding: 4px;
+}
+
+.searchInput {
+  padding: 4px 6px;
+}
+
+.item {
+  font-size: 13px;
+  padding: 6px 10px;
+  border-radius: 4px;
+}
+
+.shortcut {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-left: auto;
+}
+
+.colorSection {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.colorPreview {
+  width: 18px;
+  height: 18px;
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid light-dark(rgba(0, 0, 0, 0.1), rgba(255, 255, 255, 0.15));
+}

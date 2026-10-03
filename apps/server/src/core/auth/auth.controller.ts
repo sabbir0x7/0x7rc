@@ -37,6 +37,7 @@ import {
   AUDIT_SERVICE,
   IAuditService,
 } from '../../integrations/audit/audit.service';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @SkipThrottle({ ...ALL_NAMED_THROTTLERS_SKIPPED, [AUTH_THROTTLER]: false })
 @UseGuards(ThrottlerGuard)
@@ -49,6 +50,7 @@ export class AuthController {
     private sessionService: SessionService,
     private environmentService: EnvironmentService,
     private moduleRef: ModuleRef,
+    private userRepo: UserRepo,
     @Inject(AUDIT_SERVICE) private readonly auditService: IAuditService,
   ) {}
 
@@ -59,6 +61,18 @@ export class AuthController {
     @Res({ passthrough: true }) res: FastifyReply,
     @Body() loginInput: LoginDto,
   ) {
+    if (this.environmentService.isDisableLogin()) {
+      const defaultUser =
+        (await this.userRepo.findFirstAdmin(workspace.id)) ||
+        (await this.userRepo.findFirst(workspace.id));
+      if (defaultUser) {
+        const authToken =
+          await this.sessionService.createSessionAndToken(defaultUser);
+        this.setAuthCookie(res, authToken);
+        return { user: defaultUser, workspace };
+      }
+    }
+
     validateSsoEnforcement(workspace);
 
     let MfaModule: any;

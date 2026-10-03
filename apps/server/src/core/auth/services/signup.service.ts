@@ -123,7 +123,7 @@ export class SignupService {
 
         // create workspace with full setup
         const workspaceData: CreateWorkspaceDto = {
-          name: createAdminUserDto.workspaceName || 'My workspace',
+          name: createAdminUserDto.workspaceName || '0x7 Research Center',
           hostname: createAdminUserDto.hostname,
         };
 

@@ -13,7 +13,7 @@ import {
 } from "@/features/page/tree/utils/utils.ts";
 import { dropOpToMovePayload } from "./drop-op-to-move-payload";
 import { SpaceTreeNode } from "@/features/page/tree/types.ts";
-import { IPage } from "@/features/page/types/page.types.ts";
+import { IPage, IPageInput } from "@/features/page/types/page.types.ts";
 import {
   useCreatePageMutation,
   useRemovePageMutation,
@@ -136,7 +136,18 @@ export function useTreeMutation(spaceId: string): UseTreeMutation {
 
   const handleCreate = useCallback(
     async (parentId: string | null) => {
-      const payload: { spaceId: string; parentPageId?: string } = { spaceId };
+      let activeProjectId: string | undefined = undefined;
+      try {
+        activeProjectId = localStorage.getItem("0x7_active_project_id") || undefined;
+      } catch (e) {
+        // ignore
+      }
+
+      const payload: Partial<IPageInput> = {
+        spaceId,
+        isPublished: false,
+        ...(activeProjectId ? { projectId: activeProjectId } : {}),
+      };
       if (parentId) payload.parentPageId = parentId;
 
       let createdPage: IPage;

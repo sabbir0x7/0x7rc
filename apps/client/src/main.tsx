@@ -3,6 +3,7 @@ import "@mantine/spotlight/styles.css";
 import "@mantine/notifications/styles.css";
 import '@mantine/dates/styles.css';
 import "@/styles/a11y-overrides.css";
+import "@/features/research-manager/styles/notion-dark.css";
 
 import ReactDOM from "react-dom/client";
 import App from "./App.tsx";

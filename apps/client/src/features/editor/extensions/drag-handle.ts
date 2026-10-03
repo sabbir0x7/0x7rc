@@ -152,7 +152,7 @@ function isCustomNodeDOM(
 
 function calcNodePos(pos: number, view: EditorView) {
   const $pos = view.state.doc.resolve(pos);
-  if ($pos.depth > 1) return $pos.before($pos.depth);
+  if ($pos.depth > 0) return $pos.before($pos.depth);
   return pos;
 }
 
@@ -301,8 +301,13 @@ export function DragHandlePlugin(
   }
 
   let dragHandleElement: HTMLElement | null = null;
+  let currentHoverPos: number | null = null;
+  let currentHoverNode: Element | null = null;
+  let isDragging = false;
+  let isMenuOpen = false;
 
   function hideDragHandle() {
+    if (isMenuOpen) return;
     if (dragHandleElement) {
       dragHandleElement.classList.add("hide");
     }
@@ -315,12 +320,15 @@ export function DragHandlePlugin(
   }
 
   function hideHandleOnEditorOut(event: MouseEvent) {
+    if (isMenuOpen) return;
     if (event.target instanceof Element) {
-      // Check if the relatedTarget class is still inside the editor
-      const relatedTarget = event.relatedTarget as HTMLElement;
+      // Check if the relatedTarget is still inside the editor
+      const relatedTarget = event.relatedTarget as HTMLElement | null;
       const isInsideEditor =
-        relatedTarget?.classList.contains("tiptap") ||
-        relatedTarget?.classList.contains("drag-handle");
+        relatedTarget?.closest?.(".tiptap") ||
+        relatedTarget?.closest?.(".ProseMirror") ||
+        relatedTarget?.closest?.(".editor-container") ||
+        relatedTarget?.closest?.(".drag-handle");
 
       if (isInsideEditor) return;
     }
@@ -339,10 +347,19 @@ export function DragHandlePlugin(
       dragHandleElement.classList.add("drag-handle");
 
       function onDragHandleDragStart(e: DragEvent) {
+        isDragging = true;
         handleDragStart(e, view);
       }
 
       dragHandleElement.addEventListener("dragstart", onDragHandleDragStart);
+
+      function onDragHandleDragEnd() {
+        setTimeout(() => {
+          isDragging = false;
+        }, 150);
+      }
+
+      dragHandleElement.addEventListener("dragend", onDragHandleDragEnd);
 
       function onDragHandleDrag(e: DragEvent) {
         hideDragHandle();
@@ -355,6 +372,139 @@ export function DragHandlePlugin(
       }
 
       dragHandleElement.addEventListener("drag", onDragHandleDrag);
+
+      function onDragHandleClick(e: MouseEvent) {
+        if (isDragging) return;
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (isMenuOpen) {
+          window.dispatchEvent(new CustomEvent("docmost:close-block-menu"));
+          return;
+        }
+
+        let targetNode = currentHoverNode;
+        if (!targetNode) {
+          targetNode =
+            (nodeDOMAtCoords(
+              {
+                x: e.clientX + 50 + options.dragHandleWidth,
+                y: e.clientY,
+              },
+              options,
+              view,
+            ) as Element) ?? null;
+        }
+
+        let pos = currentHoverPos;
+        if (pos == null && targetNode instanceof Element) {
+          const rawPos = nodePosAtDOM(targetNode, view, options);
+          if (rawPos != null && rawPos >= 0) {
+            pos = calcNodePos(rawPos, view);
+          }
+        }
+
+        if (pos == null) return;
+
+        let selectedPos = pos;
+        try {
+          let targetPos = pos;
+          const $initial = view.state.doc.resolve(
+            Math.min(pos, view.state.doc.content.size),
+          );
+          if ($initial.depth > 0) {
+            const nodeAtPos = view.state.doc.nodeAt(targetPos);
+            if (!nodeAtPos || !nodeAtPos.isBlock) {
+              targetPos = $initial.before($initial.depth);
+            }
+          }
+
+          let selection: NodeSelection | TextSelection = NodeSelection.create(
+            view.state.doc,
+            targetPos,
+          );
+          const $sel = view.state.doc.resolve(selection.from);
+
+          if (targetNode && isCustomNodeDOM(targetNode, options)) {
+            const customTypes = new Set([
+              ...options.customNodes,
+              ...options.atomNodes,
+            ]);
+            for (let d = $sel.depth; d > 0; d--) {
+              if (customTypes.has($sel.node(d).type.name)) {
+                selection = NodeSelection.create(view.state.doc, $sel.before(d));
+                break;
+              }
+            }
+          } else {
+            let tableDepth = -1;
+            for (let d = $sel.depth; d > 0; d--) {
+              if ($sel.node(d).type.name === "table") {
+                tableDepth = d;
+                break;
+              }
+            }
+            if (tableDepth > 0) {
+              selection = NodeSelection.create(
+                view.state.doc,
+                $sel.before(tableDepth),
+              );
+            } else if (
+              (selection as NodeSelection).node?.isInline ||
+              (selection as NodeSelection).node?.isText
+            ) {
+              selection = NodeSelection.create(
+                view.state.doc,
+                $sel.before($sel.depth),
+              );
+            }
+          }
+          view.dispatch(view.state.tr.setSelection(selection));
+          selectedPos = selection.from;
+        } catch (err) {
+          console.warn("Could not set NodeSelection on clicked block:", err);
+        }
+
+        // Clear any native browser text selection so no text characters are selected
+        window.getSelection()?.removeAllRanges();
+        requestAnimationFrame(() => {
+          window.getSelection()?.removeAllRanges();
+        });
+
+        const rect = dragHandleElement?.getBoundingClientRect();
+        if (!rect) return;
+
+        window.dispatchEvent(
+          new CustomEvent("docmost:open-block-menu", {
+            detail: {
+              pos: selectedPos,
+              rect: {
+                top: rect.top,
+                bottom: rect.bottom,
+                left: rect.left,
+                right: rect.right,
+                width: rect.width,
+                height: rect.height,
+              },
+            },
+          }),
+        );
+      }
+
+      dragHandleElement.addEventListener("click", onDragHandleClick);
+
+      const onMenuOpened = () => {
+        isMenuOpen = true;
+        dragHandleElement?.classList.add("active");
+      };
+
+      const onMenuClosed = () => {
+        isMenuOpen = false;
+        dragHandleElement?.classList.remove("active");
+      };
+
+      window.addEventListener("docmost:open-block-menu", onMenuOpened);
+      window.addEventListener("docmost:close-block-menu", onMenuClosed);
 
       hideDragHandle();
 
@@ -376,6 +526,13 @@ export function DragHandlePlugin(
             "dragstart",
             onDragHandleDragStart,
           );
+          dragHandleElement?.removeEventListener(
+            "dragend",
+            onDragHandleDragEnd,
+          );
+          dragHandleElement?.removeEventListener("click", onDragHandleClick);
+          window.removeEventListener("docmost:open-block-menu", onMenuOpened);
+          window.removeEventListener("docmost:close-block-menu", onMenuClosed);
           dragHandleElement = null;
           view?.dom?.parentElement?.removeEventListener(
             "mouseout",
@@ -387,7 +544,7 @@ export function DragHandlePlugin(
     props: {
       handleDOMEvents: {
         mousemove: (view, event) => {
-          if (!view.editable) {
+          if (!view.editable || isMenuOpen) {
             return;
           }
 
@@ -412,6 +569,12 @@ export function DragHandlePlugin(
           ) {
             hideDragHandle();
             return;
+          }
+
+          const rawPos = nodePosAtDOM(node, view, options);
+          if (rawPos != null && rawPos >= 0) {
+            currentHoverPos = calcNodePos(rawPos, view);
+            currentHoverNode = node;
           }
 
           const isCustomNode = isCustomNodeDOM(node, options);
@@ -461,15 +624,20 @@ export function DragHandlePlugin(
 
           if (!dragHandleElement) return;
 
-          dragHandleElement.style.left = `${rect.left - rect.width}px`;
+          const DRAG_HANDLE_GAP = 8;
+          dragHandleElement.style.left = `${rect.left - rect.width - DRAG_HANDLE_GAP}px`;
           dragHandleElement.style.top = `${rect.top}px`;
           showDragHandle();
         },
         keydown: () => {
-          hideDragHandle();
+          if (!isMenuOpen) {
+            hideDragHandle();
+          }
         },
         mousewheel: () => {
-          hideDragHandle();
+          if (!isMenuOpen) {
+            hideDragHandle();
+          }
         },
         // dragging class is used for CSS
         dragstart: (view) => {
@@ -477,6 +645,9 @@ export function DragHandlePlugin(
         },
         drop: (view, event) => {
           view.dom.classList.remove("dragging");
+          setTimeout(() => {
+            isDragging = false;
+          }, 150);
           hideDragHandle();
           let droppedNode: Node | null = null;
           const dropPos = view.posAtCoords({
@@ -513,6 +684,9 @@ export function DragHandlePlugin(
         },
         dragend: (view) => {
           view.dom.classList.remove("dragging");
+          setTimeout(() => {
+            isDragging = false;
+          }, 150);
         },
       },
     },

@@ -1,5 +1,5 @@
 const APP_ROUTE = {
-  HOME: "/home",
+  HOME: "/dashboard",
   SPACES: "/spaces",
   FAVORITES: "/favorites",
   SEARCH: "/search",

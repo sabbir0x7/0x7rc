@@ -1,9 +1,10 @@
 .ProseMirror {
   .node-base {
-    /* Suppress the default ProseMirror atom-node selection outline —
-     * the embed reads as a document block, not a focused widget. */
+    /* Suppress the default ProseMirror atom-node selection outline and background tint —
+     * the embed reads as an interactive document block, not a highlighted text token. */
     &.ProseMirror-selectednode {
       outline: none;
+      background: transparent;
     }
 
     /* Page-reference pills are self-contained chips. The editor's `a` rule

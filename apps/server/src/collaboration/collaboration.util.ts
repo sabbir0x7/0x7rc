@@ -55,6 +55,7 @@ import {
   generateText,
   getSchema,
   JSONContent,
+  Node as TiptapNode,
 } from '@tiptap/core';
 import { generateHTML, generateJSON } from '../common/helpers/prosemirror/html';
 import { collapseBlankLines } from '../common/helpers';
@@ -129,6 +130,17 @@ export const tiptapExtensions = [
   Footnotes,
   Footnote,
   FootnoteReference,
+  TiptapNode.create({
+    name: 'mindmap',
+    group: 'block',
+    atom: true,
+    addAttributes() {
+      return {
+        content: { default: '' },
+        height: { default: 460 },
+      };
+    },
+  }),
 ] as any;
 
 export function jsonToHtml(tiptapJson: any) {

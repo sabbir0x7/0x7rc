@@ -14,36 +14,16 @@ import classes from "./base-embed.module.css";
 
 const SIDE_GUTTER = 8;
 
-// Extend the scroll viewport on both sides (toward AppShell.Main's
-// edges), but offset the grid content with padding-left = extendLeft
-// so the first cell still lines up with page-content on load.
+// Confine the base embed strictly within the document note bounds.
 function applyExtension(wrapper: HTMLDivElement) {
-  const rect = wrapper.getBoundingClientRect();
-  if (rect.width === 0) return;
-
-  const main = wrapper.closest("main") as HTMLElement | null;
-  const mainRect = main?.getBoundingClientRect();
-  const targetLeft = (mainRect?.left ?? 0) + SIDE_GUTTER;
-  const targetRight = mainRect
-    ? mainRect.right - SIDE_GUTTER
-    : window.innerWidth - SIDE_GUTTER;
-
-  const extendLeft = Math.max(0, rect.left - targetLeft);
-  const extendRight = Math.max(0, targetRight - rect.right);
-
-  wrapper.style.setProperty("--embed-extend-l", `${extendLeft}px`);
-  wrapper.style.setProperty("--embed-extend-r", `${extendRight}px`);
-  wrapper.style.setProperty("--embed-grid-pad-left", `${extendLeft}px`);
-  // Symmetric right-side padding so the user can pan past the last
-  // column into empty space.
-  // This gives the table breathing room on the right when scrolled fully right.
-  wrapper.style.setProperty("--embed-grid-pad-right", `${extendRight}px`);
+  wrapper.style.setProperty("--embed-extend-l", "0px");
+  wrapper.style.setProperty("--embed-extend-r", "0px");
+  wrapper.style.setProperty("--embed-grid-pad-left", "0px");
+  wrapper.style.setProperty("--embed-grid-pad-right", "0px");
   // Inline sticky band clears whatever fixed surface sits above the editor —
   // the page header AND the fixed formatting toolbar. `--editor-pin-offset`
   // is the same offset the default ProseMirror table header-pin uses
   // (published by pinOffsetWatcher); fall back to the page-header height.
-  // Standalone leaves --sticky-band-top unset (resolves to the rule default
-  // of 0).
   wrapper.style.setProperty(
     "--sticky-band-top",
     "var(--editor-pin-offset, var(--page-header-height))",
@@ -173,7 +153,13 @@ export function BaseEmbedView({ node, editor, deleteNode }: NodeViewProps) {
         <IconTable size={16} />
         <span>{page?.title?.trim() || "Untitled base"}</span>
       </div>
-      <div ref={wrapperRef} style={{ minHeight: isCompact ? undefined : 200 }}>
+      <div
+        ref={wrapperRef}
+        style={{
+          minHeight: isCompact ? undefined : 200,
+          maxWidth: "100%",
+        }}
+      >
         {content}
       </div>
     </NodeViewWrapper>

@@ -18,6 +18,42 @@ import { useHasFeature } from "@/ee/hooks/use-feature";
 import { Feature } from "@/ee/features";
 import { getPageTitle } from "@/features/page/page.utils";
 import { DocumentTitle } from "@/components/ui/document-title.tsx";
+import { useAtom } from "jotai";
+import {
+  isSplitViewOpenAtom,
+  splitPdfNameAtom,
+  splitPdfUrlAtom,
+} from "@/features/page/atoms/research-split-atoms";
+import { ResearchSplitContainer } from "@/features/page/components/research-split/research-split-container";
+import { getBackendUrl } from "@/lib/config";
+
+function resolveStoredPdfUrl(url: string): string {
+  if (!url) return url;
+  if (url.startsWith("blob:")) return url;
+
+  // Fix previously-saved wrong URLs: http://host/api/{workspaceUUID}/files/{attachmentId}/...
+  // Detect pattern: /api/ followed by a UUID, then /files/
+  const wrongApiPattern = /\/api\/[0-9a-f-]{36}\/files\//;
+  if (wrongApiPattern.test(url)) {
+    const filesIdx = url.indexOf("/files/", url.indexOf("/api/") + 5);
+    if (filesIdx !== -1) {
+      const host = url.match(/^https?:\/\/[^/]+/)?.[0] || "";
+      const filesPart = url.substring(filesIdx + 1); // "files/{attachmentId}/{filename}"
+      return `${host}/api/${filesPart}`;
+    }
+  }
+
+  if (url.startsWith("http") || url.startsWith("/api/") || url.startsWith("/files/")) return url;
+
+  // Legacy bare UUID path: "{workspaceId}/files/{attachmentId}/{filename}"
+  const filesIdx = url.indexOf("/files/");
+  if (filesIdx !== -1) {
+    const filesPart = url.substring(filesIdx + 1); // "files/{attachmentId}/{filename}"
+    return `${getBackendUrl()}/${filesPart}`;
+  }
+  return `${getBackendUrl()}/${url}`;
+}
+
 const MemoizedFullEditor = React.memo(FullEditor);
 const MemoizedTitleEditor = React.memo(TitleEditor);
 const MemoizedPageHeader = React.memo(PageHeader);
@@ -30,17 +66,20 @@ export default function Page() {
   return (
     <ErrorBoundary
       resetKeys={[pageSlug]}
-      fallbackRender={({ resetErrorBoundary }) => (
-        <EmptyState
-          icon={IconAlertTriangle}
-          title={t("Failed to load page. An error occurred.")}
-          action={
-            <Button variant="default" size="sm" mt="xs" onClick={resetErrorBoundary}>
-              {t("Try again")}
-            </Button>
-          }
-        />
-      )}
+      fallbackRender={({ error, resetErrorBoundary }) => {
+        console.error("Page error boundary caught:", error);
+        return (
+          <EmptyState
+            icon={IconAlertTriangle}
+            title={t("Failed to load page. An error occurred.")}
+            action={
+              <Button variant="default" size="sm" mt="xs" onClick={resetErrorBoundary}>
+                {t("Try again")}
+              </Button>
+            }
+          />
+        );
+      }}
     >
       <PageContent pageSlug={pageSlug} />
     </ErrorBoundary>
@@ -64,6 +103,29 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     canEdit ||
     (space?.settings?.comments?.allowViewerComments === true);
 
+  const [isSplitViewOpen] = useAtom(isSplitViewOpenAtom);
+  const [pdfUrl, setPdfUrl] = useAtom(splitPdfUrlAtom);
+  const [, setPdfName] = useAtom(splitPdfNameAtom);
+
+  // Restore saved PDF for this page if available and not yet set
+  React.useEffect(() => {
+    if (!page?.id) return;
+    try {
+      const saved = localStorage.getItem(`0x7_research_pdf_${page.id}`);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.url && !pdfUrl) {
+          const resolvedUrl = resolveStoredPdfUrl(parsed.url);
+          setPdfUrl(resolvedUrl);
+          setPdfName(parsed.name || "Document.pdf");
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }, [page?.id]);
+
+
   if (isLoading) {
     return <></>;
   }
@@ -78,8 +140,8 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
             "This page may have been deleted, moved, or you may not have access.",
           )}
           action={
-            <Button component={Link} to="/home" variant="default" size="sm" mt="xs">
-              {t("Go to homepage")}
+            <Button component={Link} to="/dashboard" variant="default" size="sm" mt="xs">
+              {t("Go to dashboard")}
             </Button>
           }
         />
@@ -167,18 +229,20 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
         <MemoizedPageHeader readOnly={!canEdit} />
 
-        <MemoizedFullEditor
-          key={page.id}
-          pageId={page.id}
-          title={page.title}
-          content={page.content}
-          slugId={page.slugId}
-          spaceSlug={page?.space?.slug}
-          editable={canEdit}
-          creator={page.creator}
-          contributors={page.contributors}
-          canComment={canComment}
-        />
+        <ResearchSplitContainer pageId={page.id} pageTitle={page.title}>
+          <MemoizedFullEditor
+            key={page.id}
+            pageId={page.id}
+            title={page.title}
+            content={page.content}
+            slugId={page.slugId}
+            spaceSlug={page?.space?.slug}
+            editable={canEdit}
+            creator={page.creator}
+            contributors={page.contributors}
+            canComment={canComment}
+          />
+        </ResearchSplitContainer>
         <MemoizedHistoryModal pageId={page.id} />
       </div>
     )

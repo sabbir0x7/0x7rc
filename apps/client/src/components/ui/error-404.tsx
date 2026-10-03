@@ -16,8 +16,8 @@ export function Error404() {
           {t("Sorry, we can't find the page you are looking for.")}
         </Text>
         <Group justify="center">
-          <Button component={Link} to={"/home"} variant="subtle" size="md">
-            {t("Take me back to homepage")}
+          <Button component={Link} to={"/dashboard"} variant="subtle" size="md">
+            {t("Take me back to dashboard")}
           </Button>
         </Group>
       </Container>
