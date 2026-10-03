@@ -854,6 +854,7 @@ function Sidebar({
   colorScheme = "light",
   onToggleTheme,
   onOpenAccountSettings,
+  onSignOut,
 }: {
   view: View
   projects: Project[]
@@ -872,6 +873,7 @@ function Sidebar({
   colorScheme?: string
   onToggleTheme?: () => void
   onOpenAccountSettings?: () => void
+  onSignOut?: () => void
 }) {
   const activeUser = currentUser || members[0] || defaultInitialLeader
   return (
@@ -1024,35 +1026,44 @@ function Sidebar({
             </button>
           )}
 
-          <button
-            type="button"
-            onClick={onOpenAccountSettings}
-            className="group flex w-full items-center gap-3 rounded-xl p-2 text-left transition hover:bg-slate-100 dark:hover:bg-[#16291e] cursor-pointer"
-            title="Edit Account & Profile"
-          >
-            <div className="relative shrink-0">
-              <Avatar member={activeUser} />
-              <span className="absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-emerald-600 text-[9px] text-white opacity-0 group-hover:opacity-100 transition shadow">
-                ✎
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={onOpenAccountSettings}
+              className="group flex flex-1 items-center gap-2.5 rounded-xl p-2 text-left transition hover:bg-slate-100 dark:hover:bg-[#16291e] cursor-pointer min-w-0"
+              title="Edit Account & Profile"
+            >
+              <div className="relative shrink-0">
+                <Avatar member={activeUser} />
+                <span className="absolute -bottom-1 -right-1 grid size-4 place-items-center rounded-full bg-emerald-600 text-[9px] text-white opacity-0 group-hover:opacity-100 transition shadow">
+                  ✎
+                </span>
+              </div>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1 truncate text-xs font-semibold text-slate-800 dark:text-[#f0fdf4]">
+                  <span className="truncate">{activeUser.name}</span>
+                  {activeUser.isVerified && (
+                    <span className="inline-flex items-center text-emerald-500 font-bold text-xs" title="Verified Student">
+                      ✓
+                    </span>
+                  )}
+                </span>
+                <span className="block truncate text-[11px] font-semibold text-indigo-600 dark:text-emerald-400">
+                  {activeUser.studentId ? `ID: ${activeUser.studentId}` : activeUser.batch ? `${activeUser.batch} · ${activeUser.section || activeUser.role}` : activeUser.role}
+                </span>
               </span>
-            </div>
-            <span className="min-w-0 flex-1">
-              <span className="flex items-center gap-1.5 truncate text-sm font-semibold text-slate-800 dark:text-[#f0fdf4]">
-                <span className="truncate">{activeUser.name}</span>
-                {activeUser.isVerified && (
-                  <span className="inline-flex items-center text-emerald-500 font-bold text-xs" title="Verified Student">
-                    ✓
-                  </span>
-                )}
-              </span>
-              <span className="block truncate text-xs font-semibold text-indigo-600 dark:text-emerald-400">
-                {activeUser.batch ? `${activeUser.batch} · ${activeUser.section || activeUser.role}` : activeUser.role}
-              </span>
-            </span>
-            <span className="rounded-md bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200/50 dark:border-emerald-800/80 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700 dark:text-emerald-400 shrink-0">
-              Edit
-            </span>
-          </button>
+            </button>
+            {onSignOut && (
+              <button
+                type="button"
+                onClick={onSignOut}
+                className="grid size-9 shrink-0 place-items-center rounded-xl text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 transition"
+                title="Log out"
+              >
+                <Icon name="arrow" className="size-4 rotate-180" />
+              </button>
+            )}
+          </div>
         </div>
       </aside>
     </>
@@ -4052,6 +4063,13 @@ export function ResearchLandingPage({
   const [studentIdStatus, setStudentIdStatus] = useState<
     "idle" | "checking" | "verified"
   >("idle")
+  const [verifiedStudent, setVerifiedStudent] = useState<{
+    studentId: string
+    name: string
+    cgpa?: number
+    totalCreditsEarned?: number
+    status?: string
+  } | null>(null)
   const [fullName, setFullName] = useState("")
   const [accountEmail, setAccountEmail] = useState("")
   const [otpSent, setOtpSent] = useState(false)
@@ -4061,13 +4079,16 @@ export function ResearchLandingPage({
   const [referralCode, setReferralCode] = useState("")
   const [generatedCode, setGeneratedCode] = useState("")
   const [codeCopied, setCodeCopied] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const gateVideoRef = useRef<HTMLVideoElement>(null)
+
   useEffect(() => {
     if (!authMode) return
-    setAuthStep("role")
-    setAccountType(null)
+    setAuthStep(authMode === "login" ? "form" : "role")
+    setAccountType(authMode === "login" ? "leader" : null)
     setStudentId("")
     setStudentIdStatus("idle")
+    setVerifiedStudent(null)
     setFullName("")
     setAccountEmail("")
     setOtpSent(false)
@@ -4077,7 +4098,9 @@ export function ResearchLandingPage({
     setReferralCode("")
     setGeneratedCode("")
     setCodeCopied(false)
+    setIsSubmitting(false)
   }, [authMode])
+
   useEffect(() => {
     const video = gateVideoRef.current
     if (!video) return
@@ -4118,42 +4141,290 @@ export function ResearchLandingPage({
       document.documentElement.style.removeProperty("--gate-progress")
     }
   }, [])
-  const submitAuth = (event: FormEvent) => {
+
+  const handleVerifyStudentId = async () => {
+    const cleanId = studentId.trim()
+    if (!cleanId || studentIdStatus === "checking") return
+    setStudentIdStatus("checking")
+    try {
+      const res: any = await api.post("/research/verify-student", {
+        studentId: cleanId,
+      })
+      if (res?.success && res?.student) {
+        setStudentIdStatus("verified")
+        setVerifiedStudent(res.student)
+        if (res.student.name) {
+          setFullName(res.student.name)
+        }
+        notifications.show({
+          title: "Student ID Verified",
+          message: `Official record verified: ${res.student.name} (CGPA: ${res.student.cgpa || "N/A"})`,
+          color: "green",
+        })
+      } else {
+        setStudentIdStatus("idle")
+        notifications.show({
+          title: "Verification Failed",
+          message: "Student record was not found.",
+          color: "red",
+        })
+      }
+    } catch (err: any) {
+      setStudentIdStatus("idle")
+      setVerifiedStudent(null)
+      const errorMsg =
+        err?.response?.data?.message ||
+        `Student ID "${cleanId}" is not in the university records. Only authorized students can register.`
+      notifications.show({
+        title: "Student ID Not Found",
+        message: errorMsg,
+        color: "red",
+        autoClose: 7000,
+      })
+    }
+  }
+
+  const handleSendOtp = async () => {
+    const cleanEmail = accountEmail.trim()
+    const cleanId = studentId.trim()
+    if (!cleanEmail || !cleanId) {
+      notifications.show({
+        title: "Missing Information",
+        message: "Please enter your Student ID and Institutional Email.",
+        color: "yellow",
+      })
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      const res: any = await api.post("/research/send-otp", {
+        email: cleanEmail,
+        studentId: cleanId,
+      })
+      setOtpSent(true)
+      notifications.show({
+        title: "6-Digit OTP Sent",
+        message: `Verification code: ${res.otpCode} (Valid for 10 minutes). Stored in database.`,
+        color: "blue",
+        autoClose: 15000,
+      })
+    } catch (err: any) {
+      const errorMsg =
+        err?.response?.data?.message || "Failed to generate OTP code."
+      notifications.show({
+        title: "Failed to Send OTP",
+        message: errorMsg,
+        color: "red",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleVerifyOtp = async () => {
+    const cleanEmail = accountEmail.trim()
+    const cleanCode = otpCode.trim()
+    if (cleanCode.length !== 6) {
+      notifications.show({
+        title: "Incomplete Code",
+        message: "Please enter the complete 6-digit verification code.",
+        color: "yellow",
+      })
+      return
+    }
+    setIsSubmitting(true)
+    try {
+      await api.post("/research/verify-otp", {
+        email: cleanEmail,
+        otpCode: cleanCode,
+      })
+      setOtpVerified(true)
+      notifications.show({
+        title: "OTP Verified",
+        message: "Email verification successful.",
+        color: "green",
+      })
+    } catch (err: any) {
+      setOtpVerified(false)
+      const errorMsg =
+        err?.response?.data?.message || "Invalid or expired OTP code."
+      notifications.show({
+        title: "OTP Verification Failed",
+        message: errorMsg,
+        color: "red",
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const submitAuth = async (event: FormEvent) => {
     event.preventDefault()
-    if (!studentId.trim() || !password.trim() || !accountType) return
-    if (
-      authMode === "signup" &&
-      (studentIdStatus !== "verified" ||
-        !fullName.trim() ||
-        !accountEmail.trim() ||
-        !otpVerified)
-    )
-      return
-    if (
-      authMode === "signup" &&
-      accountType === "member" &&
-      !referralCode.trim()
-    )
-      return
-    if (authMode === "signup" && accountType === "leader") {
-      const code = `0X7-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.random().toString(36).slice(2, 4).toUpperCase()}`
-      setGeneratedCode(code)
-      setAuthStep("referral")
-      onLeaderRegistered?.({
-        name: fullName.trim(),
-        email: accountEmail.trim(),
-        teamId: code,
+    if (!studentId.trim() || !password.trim()) {
+      notifications.show({
+        title: "Missing Fields",
+        message: "Please enter your Student ID and Password.",
+        color: "yellow",
       })
       return
     }
-    if (authMode === "signup" && accountType === "member") {
-      onMemberJoined?.({
-        name: fullName.trim(),
-        email: accountEmail.trim(),
-        teamId: referralCode.trim(),
-      })
+
+    if (authMode === "signup") {
+      if (!accountType) return
+      if (studentIdStatus !== "verified") {
+        notifications.show({
+          title: "Student ID Not Verified",
+          message: "Please verify your Student ID against university records first.",
+          color: "yellow",
+        })
+        return
+      }
+      if (!fullName.trim() || !accountEmail.trim()) {
+        notifications.show({
+          title: "Missing Information",
+          message: "Please provide your full name and institutional email.",
+          color: "yellow",
+        })
+        return
+      }
+      if (!otpVerified) {
+        notifications.show({
+          title: "OTP Verification Required",
+          message: "Please verify the 6-digit email OTP before creating your account.",
+          color: "yellow",
+        })
+        return
+      }
+      if (accountType === "member" && !referralCode.trim()) {
+        notifications.show({
+          title: "Team ID Required",
+          message: "General members must specify a Team ID to join.",
+          color: "yellow",
+        })
+        return
+      }
+      if (password.length < 6) {
+        notifications.show({
+          title: "Password Too Short",
+          message: "Password must be at least 6 characters long.",
+          color: "yellow",
+        })
+        return
+      }
+
+      setIsSubmitting(true)
+      try {
+        const leaderTeamCode =
+          accountType === "leader"
+            ? `0X7-${Math.random().toString(36).slice(2, 6).toUpperCase()}${Math.random().toString(36).slice(2, 4).toUpperCase()}`
+            : undefined
+
+        const teamIdToUse =
+          accountType === "leader" ? leaderTeamCode : referralCode.trim()
+
+        const res: any = await api.post("/research/register", {
+          studentId: studentId.trim(),
+          name: fullName.trim(),
+          email: accountEmail.trim(),
+          password: password.trim(),
+          role: accountType === "leader" ? "Team Leader" : "Researcher",
+          teamId: teamIdToUse,
+        })
+
+        const user = res.user
+        const userProfile = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          studentId: user.studentId,
+          role: user.role === "Team Leader" ? "Team Leader" : "General Member",
+          cgpa: user.cgpa,
+          credits: user.credits,
+          isVerified: true,
+          teamId: user.teamId,
+        }
+        localStorage.setItem("0x7_user_profile", JSON.stringify(userProfile))
+        localStorage.setItem("0x7_research_auth_user", JSON.stringify(user))
+
+        notifications.show({
+          title: "Registration Successful",
+          message: `Account created for ${user.name} (${user.role}).`,
+          color: "green",
+        })
+
+        if (accountType === "leader") {
+          setGeneratedCode(teamIdToUse!)
+          setAuthStep("referral")
+          onLeaderRegistered?.({
+            name: user.name,
+            email: user.email,
+            teamId: teamIdToUse!,
+          })
+        } else {
+          onMemberJoined?.({
+            name: user.name,
+            email: user.email,
+            teamId: teamIdToUse!,
+          })
+          onEnter()
+        }
+      } catch (err: any) {
+        const errorMsg =
+          err?.response?.data?.message ||
+          "Failed to create account. Please try again."
+        notifications.show({
+          title: "Registration Failed",
+          message: errorMsg,
+          color: "red",
+          autoClose: 7000,
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
+    } else if (authMode === "login") {
+      setIsSubmitting(true)
+      try {
+        const res: any = await api.post("/research/login", {
+          studentId: studentId.trim(),
+          password: password.trim(),
+        })
+
+        const user = res.user
+        const userProfile = {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          studentId: user.studentId,
+          role: user.role === "Team Leader" ? "Team Leader" : "General Member",
+          cgpa: user.cgpa,
+          credits: user.credits,
+          isVerified: true,
+          teamId: user.teamId,
+        }
+        localStorage.setItem("0x7_user_profile", JSON.stringify(userProfile))
+        localStorage.setItem("0x7_research_auth_user", JSON.stringify(user))
+
+        notifications.show({
+          title: "Login Successful",
+          message: `Welcome back, ${user.name}!`,
+          color: "green",
+        })
+
+        onEnter()
+      } catch (err: any) {
+        const errorMsg =
+          err?.response?.data?.message ||
+          "Incorrect Student ID or password. Please verify and try again."
+        notifications.show({
+          title: "Login Failed",
+          message: errorMsg,
+          color: "red",
+          autoClose: 7000,
+        })
+      } finally {
+        setIsSubmitting(false)
+      }
     }
-    onEnter()
   }
 
   return (
@@ -4550,32 +4821,38 @@ export function ResearchLandingPage({
               </div>
             )}
 
-            {authStep === "form" && accountType && (
+            {authStep === "form" && (authMode === "login" || accountType) && (
               <form onSubmit={submitAuth} className="mt-7 space-y-4">
-                <button
-                  type="button"
-                  onClick={() => setAuthStep("role")}
-                  className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-indigo-600"
-                >
-                  <Icon name="arrow" className="size-3.5 rotate-180" />
-                  Change account type
-                </button>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
-                  <div className="flex items-center gap-2">
-                    <span className="grid size-7 place-items-center rounded-lg bg-indigo-100 text-indigo-700">
-                      <Icon
-                        name={accountType === "leader" ? "spark" : "users"}
-                        className="size-3.5"
-                      />
-                    </span>
-                    <span className="text-xs font-bold text-slate-700">
-                      {accountType === "leader" ? "Team Leader" : "General Member"}
-                    </span>
+                {authMode === "signup" && (
+                  <button
+                    type="button"
+                    onClick={() => setAuthStep("role")}
+                    className="mb-1 flex items-center gap-2 text-xs font-bold text-slate-500 transition hover:text-indigo-600"
+                  >
+                    <Icon name="arrow" className="size-3.5 rotate-180" />
+                    Change account type
+                  </button>
+                )}
+                {authMode === "signup" && accountType && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="grid size-7 place-items-center rounded-lg bg-indigo-100 text-indigo-700">
+                        <Icon
+                          name={accountType === "leader" ? "spark" : "users"}
+                          className="size-3.5"
+                        />
+                      </span>
+                      <span className="text-xs font-bold text-slate-700">
+                        {accountType === "leader" ? "Team Leader" : "General Member"}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                )}
                 <div>
                   <span className="text-xs font-bold text-slate-700">
-                    Student ID
+                    {authMode === "login"
+                      ? "Student ID or Email"
+                      : "Student ID"}
                   </span>
                   <div className="mt-2 flex gap-2">
                     <input
@@ -4583,10 +4860,15 @@ export function ResearchLandingPage({
                       onChange={(event) => {
                         setStudentId(event.target.value)
                         setStudentIdStatus("idle")
+                        setVerifiedStudent(null)
                         setOtpSent(false)
                         setOtpVerified(false)
                       }}
-                      placeholder="e.g. 631234"
+                      placeholder={
+                        authMode === "login"
+                          ? "e.g. 0272320005101220 or email"
+                          : "e.g. 0272320005101220"
+                      }
                       autoComplete="username"
                       className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                     />
@@ -4597,33 +4879,29 @@ export function ResearchLandingPage({
                           studentId.trim().length < 4 ||
                           studentIdStatus === "checking"
                         }
-                        onClick={() => {
-                          setStudentIdStatus("checking")
-                          window.setTimeout(
-                            () => setStudentIdStatus("verified"),
-                            650,
-                          )
-                        }}
+                        onClick={handleVerifyStudentId}
                         className="flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-100 px-3.5 text-xs font-bold text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 disabled:pointer-events-none disabled:opacity-40"
                       >
                         {studentIdStatus === "verified" ? (
                           <Icon name="check" className="size-3.5 text-emerald-600" />
+                        ) : studentIdStatus === "checking" ? (
+                          <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
                         ) : (
                           <Icon name="search" className="size-3.5" />
                         )}
                         {studentIdStatus === "checking"
-                          ? "Checking..."
+                          ? "Verifying..."
                           : studentIdStatus === "verified"
                             ? "Verified"
-                            : "Verify"}
+                            : "Verify ID"}
                       </button>
                     )}
                   </div>
                   {authMode === "signup" && (
                     <span
-                      className={`mt-2 flex items-center gap-1.5 text-[10px] ${
+                      className={`mt-2 flex items-center gap-1.5 text-[11px] ${
                         studentIdStatus === "verified"
-                          ? "text-emerald-600"
+                          ? "font-semibold text-emerald-600"
                           : "text-slate-500"
                       }`}
                     >
@@ -4632,8 +4910,8 @@ export function ResearchLandingPage({
                         className="size-3"
                       />
                       {studentIdStatus === "verified"
-                        ? "Student ID verification passed (frontend demo)."
-                        : "Database verification will be connected later."}
+                        ? `Official database match: ${verifiedStudent?.name || fullName}${verifiedStudent?.cgpa ? ` · CGPA: ${verifiedStudent.cgpa}` : ""}`
+                        : "Must be a registered student in university records (121 authorized students)."}
                     </span>
                   )}
                 </div>
@@ -4642,7 +4920,7 @@ export function ResearchLandingPage({
                   <div className="space-y-4 border-t border-slate-100 pt-4">
                     <label className="block">
                       <span className="text-xs font-bold text-slate-700">
-                        Full name
+                        Full name (from university records)
                       </span>
                       <input
                         value={fullName}
@@ -4693,13 +4971,18 @@ export function ResearchLandingPage({
                         disabled={
                           !fullName.trim() ||
                           !accountEmail.trim() ||
-                          (accountType === "member" && !referralCode.trim())
+                          (accountType === "member" && !referralCode.trim()) ||
+                          isSubmitting
                         }
-                        onClick={() => setOtpSent(true)}
+                        onClick={handleSendOtp}
                         className="flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs font-bold text-indigo-700 transition hover:bg-indigo-100 disabled:pointer-events-none disabled:opacity-40"
                       >
-                        <Icon name="send" className="size-4" />
-                        Send email OTP
+                        {isSubmitting ? (
+                          <span className="inline-block size-4 animate-spin rounded-full border-2 border-indigo-600 border-t-transparent" />
+                        ) : (
+                          <Icon name="send" className="size-4" />
+                        )}
+                        {isSubmitting ? "Generating OTP..." : "Send email OTP"}
                       </button>
                     ) : (
                       <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
@@ -4717,15 +5000,23 @@ export function ResearchLandingPage({
                           />
                           <button
                             type="button"
-                            disabled={otpCode.length !== 6}
-                            onClick={() => setOtpVerified(true)}
-                            className="rounded-xl bg-indigo-600 px-3 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:pointer-events-none disabled:opacity-40"
+                            disabled={otpCode.length !== 6 || isSubmitting}
+                            onClick={handleVerifyOtp}
+                            className="rounded-xl bg-indigo-600 px-3.5 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:pointer-events-none disabled:opacity-40"
                           >
-                            {otpVerified ? "Verified" : "Verify OTP"}
+                            {isSubmitting ? (
+                              <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                            ) : otpVerified ? (
+                              "Verified ✓"
+                            ) : (
+                              "Verify OTP"
+                            )}
                           </button>
                         </div>
                         <p className="mt-2 text-[10px] text-slate-500">
-                          Frontend demo: enter any 6-digit code.
+                          {otpVerified
+                            ? "✓ 6-digit OTP verified against database."
+                            : "Enter the 6-digit OTP sent to your email to verify authorization."}
                         </p>
                       </div>
                     )}
@@ -4739,6 +5030,14 @@ export function ResearchLandingPage({
                       {authMode === "login" && (
                         <button
                           type="button"
+                          onClick={() => {
+                            notifications.show({
+                              title: "Password Reset",
+                              message:
+                                "Please contact research administration to reset your credentials.",
+                              color: "blue",
+                            })
+                          }}
                           className="font-semibold text-indigo-600 hover:text-indigo-700"
                         >
                           Forgot password?
@@ -4749,9 +5048,15 @@ export function ResearchLandingPage({
                       type="password"
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
-                      placeholder="At least 8 characters"
+                      placeholder={
+                        authMode === "login"
+                          ? "Enter your password"
+                          : "At least 6 characters"
+                      }
                       autoComplete={
-                        authMode === "login" ? "current-password" : "new-password"
+                        authMode === "login"
+                          ? "current-password"
+                          : "new-password"
                       }
                       className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
                     />
@@ -4762,6 +5067,7 @@ export function ResearchLandingPage({
                   disabled={
                     !studentId.trim() ||
                     !password.trim() ||
+                    isSubmitting ||
                     (authMode === "signup" &&
                       (studentIdStatus !== "verified" ||
                         !fullName.trim() ||
@@ -4773,12 +5079,19 @@ export function ResearchLandingPage({
                   }
                   className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 disabled:pointer-events-none disabled:opacity-40"
                 >
+                  {isSubmitting && (
+                    <span className="inline-block size-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  )}
                   {authMode === "login"
-                    ? "Log in"
-                    : accountType === "leader"
-                      ? "Create team account"
-                      : "Join team"}
-                  <Icon name="arrow" className="size-4" />
+                    ? isSubmitting
+                      ? "Logging in..."
+                      : "Log in"
+                    : isSubmitting
+                      ? "Creating account..."
+                      : accountType === "leader"
+                        ? "Create team account"
+                        : "Join team"}
+                  {!isSubmitting && <Icon name="arrow" className="size-4" />}
                 </button>
               </form>
             )}
@@ -5917,6 +6230,14 @@ export function ResearchTeamManagerApp({
       color: "green",
     })
   }
+
+  const handleSignOut = () => {
+    localStorage.removeItem("0x7_user_profile")
+    localStorage.removeItem("0x7_research_auth_user")
+    setAuthenticated(false)
+    navigate("/")
+  }
+
   if (!authenticated) {
     return (
       <ResearchLandingPage
@@ -5949,6 +6270,7 @@ export function ResearchTeamManagerApp({
         colorScheme={computedColorScheme}
         onToggleTheme={toggleTheme}
         onOpenAccountSettings={() => setIsAccountModalOpen(true)}
+        onSignOut={handleSignOut}
       />
       <div className="min-h-screen lg:pl-64">
         <Topbar

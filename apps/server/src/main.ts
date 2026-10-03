@@ -134,6 +134,7 @@ async function bootstrap() {
         '/api/workspace/create',
         '/api/workspace/joined',
         '/api/workspace/find-by-email',
+        '/api/research',
       ];
 
       if (

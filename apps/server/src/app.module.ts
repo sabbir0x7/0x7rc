@@ -30,6 +30,7 @@ import { NoopAuditModule } from './integrations/audit/audit.module';
 import { ThrottleModule } from './integrations/throttle/throttle.module';
 import { OutboundModule } from './integrations/outbound/outbound.module';
 import { EncryptionModule } from './integrations/encryption/encryption.module';
+import { ResearchAuthModule } from './core/research-auth/research-auth.module';
 
 const enterpriseModules = [];
 try {
@@ -57,6 +58,7 @@ try {
     DatabaseModule,
     EnvironmentModule,
     EncryptionModule,
+    ResearchAuthModule,
     RedisModule.forRootAsync({
       useClass: RedisConfigService,
     }),

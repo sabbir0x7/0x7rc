@@ -29,8 +29,18 @@ api.interceptors.response.use(
     if (error.response) {
       switch (error.response.status) {
         case 401: {
-          const url = new URL(error.request.responseURL)?.pathname;
-          if (url === "/api/auth/collab-token") return;
+          let pathname = "";
+          try {
+            if (error.request?.responseURL) {
+              pathname = new URL(error.request.responseURL)?.pathname || "";
+            } else if (error.config?.url) {
+              pathname = error.config.url;
+            }
+          } catch (e) {
+            pathname = error.config?.url || "";
+          }
+          if (pathname === "/api/auth/collab-token") return;
+          if (pathname.includes("/research/")) break;
           if (window.location.pathname.startsWith("/share/")) return;
           // public docs probe authed endpoints; reject without the login redirect
           if (
