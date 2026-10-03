@@ -91,11 +91,6 @@ const ResearchDashboardPage = lazy(
 );
 
 function RootRoute() {
-  const { data, isLoading } = useCurrentUser();
-  if (isLoading) return null;
-  if (data?.user) {
-    return <Navigate to="/dashboard" replace />;
-  }
   return <LandingPage />;
 }
 
@@ -113,15 +108,16 @@ export default function App() {
   return (
     <Suspense fallback={null}>
       <Routes>
-        <Route index element={<RootRoute />} />
+        <Route index element={<LandingPage />} />
         <Route path={"/welcome"} element={<LandingPage />} />
         <Route path={"/dashboard"} element={<ResearchDashboardPage />} />
         <Route path={"/login"} element={<Navigate to="/welcome" replace />} />
+        <Route path={"/login/*"} element={<Navigate to="/welcome" replace />} />
         <Route path={"/invites/*"} element={<Navigate to="/welcome" replace />} />
         <Route path={"/forgot-password"} element={<Navigate to="/welcome" replace />} />
         <Route path={"/password-reset"} element={<Navigate to="/welcome" replace />} />
-        <Route path={"/setup/*"} element={<SetupWorkspace />} />
-        <Route path={"/setup"} element={<SetupWorkspace />} />
+        <Route path={"/setup/*"} element={<Navigate to="/welcome" replace />} />
+        <Route path={"/setup"} element={<Navigate to="/welcome" replace />} />
 
         <Route path={"/docs"} element={<Navigate to="/dashboard" replace />} />
         <Route path={"/docs/*"} element={<Navigate to="/dashboard" replace />} />

@@ -137,6 +137,31 @@ export class DatabaseModule implements OnApplicationBootstrap {
     if (this.environmentService.getNodeEnv() === 'production') {
       await this.migrationService.migrateToLatest();
     }
+
+    try {
+      const existingWorkspace = await this.db
+        .selectFrom('workspaces')
+        .select('id')
+        .executeTakeFirst();
+
+      if (!existingWorkspace) {
+        this.logger.log(
+          'No workspace found in database. Auto-seeding default 0x7 Research Center workspace...',
+        );
+        const ws = await this.db
+          .insertInto('workspaces')
+          .values({
+            name: '0x7 Research Center',
+            description: '0x7 Research Center Team Workspace',
+          } as any)
+          .returning('id')
+          .executeTakeFirst();
+
+        this.logger.log(`Default workspace auto-created: ${ws?.id}`);
+      }
+    } catch (e) {
+      this.logger.warn('Auto-seed workspace check error:', e);
+    }
   }
 
   async establishConnection() {
