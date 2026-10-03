@@ -209,7 +209,31 @@ export class EnvironmentVariables {
 }
 
 export function validate(config: Record<string, any>) {
-  const validatedConfig = plainToInstance(EnvironmentVariables, config);
+  const sanitizedConfig = { ...config };
+  for (const key of Object.keys(sanitizedConfig)) {
+    if (typeof sanitizedConfig[key] === 'string') {
+      let val = sanitizedConfig[key].trim();
+      if (
+        (val.startsWith('"') && val.endsWith('"')) ||
+        (val.startsWith("'") && val.endsWith("'"))
+      ) {
+        val = val.slice(1, -1).trim();
+      }
+      sanitizedConfig[key] = val;
+    }
+  }
+
+  if (typeof sanitizedConfig.REDIS_URL === 'string') {
+    let rUrl = sanitizedConfig.REDIS_URL.trim();
+    if (rUrl.includes('rediss://')) {
+      rUrl = 'rediss://' + rUrl.split('rediss://')[1].trim();
+    } else if (rUrl.includes('redis://')) {
+      rUrl = 'redis://' + rUrl.split('redis://')[1].trim();
+    }
+    sanitizedConfig.REDIS_URL = rUrl;
+  }
+
+  const validatedConfig = plainToInstance(EnvironmentVariables, sanitizedConfig);
 
   const errors = validateSync(validatedConfig);
 
