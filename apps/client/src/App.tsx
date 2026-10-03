@@ -120,8 +120,8 @@ export default function App() {
         <Route path={"/invites/*"} element={<Navigate to="/welcome" replace />} />
         <Route path={"/forgot-password"} element={<Navigate to="/welcome" replace />} />
         <Route path={"/password-reset"} element={<Navigate to="/welcome" replace />} />
-        <Route path={"/login/*"} element={<Navigate to="/welcome" replace />} />
-        <Route path={"/setup/*"} element={<Navigate to="/dashboard" replace />} />
+        <Route path={"/setup/*"} element={<SetupWorkspace />} />
+        <Route path={"/setup"} element={<SetupWorkspace />} />
 
         <Route path={"/docs"} element={<Navigate to="/dashboard" replace />} />
         <Route path={"/docs/*"} element={<Navigate to="/dashboard" replace />} />

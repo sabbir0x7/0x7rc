@@ -51,13 +51,13 @@ api.interceptors.response.use(
           // Handle not found error
           if (
             error.response.data.message
-              .toLowerCase()
+              ?.toLowerCase()
               .includes("workspace not found")
           ) {
             console.log("workspace not found");
             if (
               !isCloud() &&
-              window.location.pathname != APP_ROUTE.AUTH.SETUP
+              !window.location.pathname.startsWith("/setup")
             ) {
               window.location.href = APP_ROUTE.AUTH.SETUP;
             }
