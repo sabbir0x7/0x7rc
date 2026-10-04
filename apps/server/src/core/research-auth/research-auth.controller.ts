@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Query,
   Res,
@@ -20,6 +21,8 @@ import { ResearchAuthService } from './research-auth.service';
 
 @Controller('research')
 export class ResearchAuthController {
+  private readonly logger = new Logger(ResearchAuthController.name);
+
   constructor(private readonly researchAuthService: ResearchAuthService) {}
 
   @HttpCode(HttpStatus.OK)
@@ -47,22 +50,27 @@ export class ResearchAuthController {
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
     const result = await this.researchAuthService.register(dto);
-    const session = await this.researchAuthService.syncSession(
-      {
-        studentId: result.user.studentId,
-        email: result.user.email,
-        name: result.user.name,
-        role: result.user.role,
-      },
-      res,
-    );
-    return {
-      ...result,
-      sessionToken: session.token,
-      workspaceId: session.workspaceId,
-      spaceId: session.spaceId,
-      spaceSlug: session.spaceSlug,
-    };
+    try {
+      const session = await this.researchAuthService.syncSession(
+        {
+          studentId: result.user.studentId,
+          email: result.user.email,
+          name: result.user.name,
+          role: result.user.role,
+        },
+        res,
+      );
+      return {
+        ...result,
+        sessionToken: session?.token,
+        workspaceId: session?.workspaceId,
+        spaceId: session?.spaceId,
+        spaceSlug: session?.spaceSlug,
+      };
+    } catch (sessionErr: any) {
+      this.logger.warn(`syncSession failed gracefully during register: ${sessionErr?.message}`);
+      return result;
+    }
   }
 
   @HttpCode(HttpStatus.OK)
@@ -72,22 +80,27 @@ export class ResearchAuthController {
     @Res({ passthrough: true }) res: FastifyReply,
   ) {
     const result = await this.researchAuthService.login(dto);
-    const session = await this.researchAuthService.syncSession(
-      {
-        studentId: result.user.studentId,
-        email: result.user.email,
-        name: result.user.name,
-        role: result.user.role,
-      },
-      res,
-    );
-    return {
-      ...result,
-      sessionToken: session.token,
-      workspaceId: session.workspaceId,
-      spaceId: session.spaceId,
-      spaceSlug: session.spaceSlug,
-    };
+    try {
+      const session = await this.researchAuthService.syncSession(
+        {
+          studentId: result.user.studentId,
+          email: result.user.email,
+          name: result.user.name,
+          role: result.user.role,
+        },
+        res,
+      );
+      return {
+        ...result,
+        sessionToken: session?.token,
+        workspaceId: session?.workspaceId,
+        spaceId: session?.spaceId,
+        spaceSlug: session?.spaceSlug,
+      };
+    } catch (sessionErr: any) {
+      this.logger.warn(`syncSession failed gracefully during login: ${sessionErr?.message}`);
+      return result;
+    }
   }
 
   @HttpCode(HttpStatus.OK)
