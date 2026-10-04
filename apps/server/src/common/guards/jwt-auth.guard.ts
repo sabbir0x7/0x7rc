@@ -45,63 +45,61 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
       return true;
     }
 
-    if (this.environmentService.isDisableLogin()) {
-      const req = context.switchToHttp().getRequest();
-      const res = context.switchToHttp().getResponse();
+    const req = context.switchToHttp().getRequest();
+    const res = context.switchToHttp().getResponse();
 
-      try {
-        const canResult = super.canActivate(context);
-        const can = isObservable(canResult)
-          ? await firstValueFrom(canResult)
-          : await canResult;
-        if (can && req.user) {
-          return true;
-        }
-      } catch (err) {
-        // Fallback to auto-login
+    try {
+      const canResult = super.canActivate(context);
+      const can = isObservable(canResult)
+        ? await firstValueFrom(canResult)
+        : await canResult;
+      if (can && req.user) {
+        return true;
       }
+    } catch (err) {
+      // Passport auth failed (missing or invalid cookie/header)
+    }
 
-      const workspace = await this.workspaceRepo.findFirst();
-      if (workspace) {
-        const defaultUser =
-          (await this.userRepo.findFirstAdmin(workspace.id)) ||
-          (await this.userRepo.findFirst(workspace.id));
-        if (defaultUser) {
-          req.user = { user: defaultUser, workspace, authType: JwtType.ACCESS };
-          if (req.raw) {
-            req.raw.workspaceId = workspace.id;
-            req.raw.workspace = workspace;
-          }
-          if (res && typeof res.setCookie === 'function' && !req.cookies?.authToken) {
-            try {
-              const token = jwt.sign(
-                {
-                  sub: defaultUser.id,
-                  email: defaultUser.email,
-                  workspaceId: defaultUser.workspaceId,
-                  type: JwtType.ACCESS,
-                },
-                this.environmentService.getAppSecret(),
-                { expiresIn: '30d' },
-              );
-              res.setCookie('authToken', token, {
-                httpOnly: true,
-                sameSite: 'lax',
-                path: '/',
-                expires: this.environmentService.getCookieExpiresIn(),
-                secure: this.environmentService.isHttps(),
-              });
-            } catch (e) {
-              // ignore
-            }
-          }
-          return true;
+    // Auto-authenticate fallback using workspace user for Research Center
+    const workspace = await this.workspaceRepo.findFirst();
+    if (workspace) {
+      const defaultUser =
+        (await this.userRepo.findFirstAdmin(workspace.id)) ||
+        (await this.userRepo.findFirst(workspace.id));
+      if (defaultUser) {
+        req.user = { user: defaultUser, workspace, authType: JwtType.ACCESS };
+        if (req.raw) {
+          req.raw.workspaceId = workspace.id;
+          req.raw.workspace = workspace;
         }
+        if (res && typeof res.setCookie === 'function' && !req.cookies?.authToken) {
+          try {
+            const token = jwt.sign(
+              {
+                sub: defaultUser.id,
+                email: defaultUser.email,
+                workspaceId: defaultUser.workspaceId,
+                type: JwtType.ACCESS,
+              },
+              this.environmentService.getAppSecret(),
+              { expiresIn: '30d' },
+            );
+            res.setCookie('authToken', token, {
+              httpOnly: true,
+              sameSite: 'lax',
+              path: '/',
+              expires: this.environmentService.getCookieExpiresIn(),
+              secure: this.environmentService.isHttps(),
+            });
+          } catch (e) {
+            // ignore
+          }
+        }
+        return true;
       }
     }
 
-    const result = super.canActivate(context);
-    return isObservable(result) ? await firstValueFrom(result) : await result;
+    throw new UnauthorizedException();
   }
 
   handleRequest(err: any, user: any, info: any, ctx: ExecutionContext) {

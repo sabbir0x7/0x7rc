@@ -77,7 +77,7 @@ export function UserProvider({ children }: React.PropsWithChildren) {
   }
 
   if (error) {
-    return <></>;
+    return <>{children}</>;
   }
 
   return <>{children}</>;

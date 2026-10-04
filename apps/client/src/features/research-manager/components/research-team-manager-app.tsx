@@ -30,6 +30,8 @@ import { updateUser } from "@/features/user/services/user-service"
 import { AccountSettingsModal } from "./account-settings-modal"
 import { AiRoadmapChatbox } from "./ai-roadmap-chatbox"
 import { RoadmapPhase, BoardTaskItem, PhaseTask } from "../services/gemini-roadmap-service"
+import { InAppSplitViewModal } from "./in-app-split-view-modal"
+import { InAppNoteEditorModal } from "./in-app-note-editor-modal"
 import { useSetAtom } from "jotai"
 import {
   isSplitViewOpenAtom,
@@ -2516,7 +2518,7 @@ function NotesTab({
         </div>
         <Button onClick={onCreateNote}>
           <Icon name="plus" className="size-4" />
-          Create Note in Docmost
+          Create Research Note
         </Button>
       </div>
 
@@ -2622,7 +2624,7 @@ function NotesTab({
           <div className="mt-4">
             <Button onClick={onCreateNote}>
               <Icon name="plus" className="size-4" />
-              Create Note in Docmost
+              Create Research Note
             </Button>
           </div>
         </div>
@@ -5298,10 +5300,12 @@ export function ResearchTeamManagerApp({
   const navigate = useNavigate()
   const { data: researchNotesData } = useResearchNotesQuery()
   const { data: spacesData } = useGetSpacesQuery()
+  const [syncedSpaceId, setSyncedSpaceId] = useState<string>("")
+  const [syncedSpaceSlug, setSyncedSpaceSlug] = useState<string>("")
   const defaultSpace = spacesData?.items?.[0]
   const defaultSpaceId =
-    defaultSpace?.id || "01a0ee80-4047-71ec-8a55-7ae9995da890"
-  const defaultSpaceSlug = defaultSpace?.slug || "general"
+    defaultSpace?.id || syncedSpaceId || "01a0ee80-4047-71ec-8a55-7ae9995da890"
+  const defaultSpaceSlug = defaultSpace?.slug || syncedSpaceSlug || "general"
   const createPageMutation = useCreatePageMutation()
   const togglePublishMutation = useTogglePublishMutation()
   const deletePageMutation = useDeletePageMutation()
@@ -5500,6 +5504,28 @@ export function ResearchTeamManagerApp({
       ...(savedProfile || {}),
     }
   }, [currentUserData, teamMembers, team.leaderId])
+
+  useEffect(() => {
+    // Automatically synchronize research user session with Docmost on mount
+    api
+      .post("/research/sync-session", {
+        studentId: currentUser.studentId,
+        name: currentUser.name,
+        email: currentUser.email,
+        role: currentUser.role,
+      })
+      .then((res: any) => {
+        if (res?.spaceId) {
+          setSyncedSpaceId(res.spaceId)
+        }
+        if (res?.spaceSlug) {
+          setSyncedSpaceSlug(res.spaceSlug)
+        }
+      })
+      .catch((err) => {
+        console.warn("Session sync notice:", err?.message || err)
+      })
+  }, [currentUser.studentId, currentUser.name, currentUser.email, currentUser.role])
 
   const handleSaveProfile = async (updatedData: {
     name: string
@@ -5889,6 +5915,42 @@ export function ResearchTeamManagerApp({
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null)
   const [readingPaper, setReadingPaper] = useState<Paper | null>(null)
+  const [splitPaper, setSplitPaper] = useState<Paper | null>(null)
+  const [editingNote, setEditingNote] = useState<Note | null>(null)
+  const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false)
+  const [localNotes, setLocalNotes] = useState<Note[]>(() => {
+    try {
+      const saved = localStorage.getItem("0x7_research_notes")
+      if (saved) {
+        const parsed = JSON.parse(saved)
+        if (Array.isArray(parsed)) return parsed
+      }
+    } catch (e) {
+      console.error("Failed to load local notes", e)
+    }
+    return []
+  })
+
+  const saveLocalNote = (newNote: Note) => {
+    setLocalNotes((prev) => {
+      const existingIdx = prev.findIndex(
+        (n) => String(n.id) === String(newNote.id) || (n.slugId && n.slugId === newNote.slugId),
+      )
+      let next: Note[]
+      if (existingIdx >= 0) {
+        next = [...prev]
+        next[existingIdx] = { ...next[existingIdx], ...newNote }
+      } else {
+        next = [newNote, ...prev]
+      }
+      try {
+        localStorage.setItem("0x7_research_notes", JSON.stringify(next))
+      } catch (e) {
+        console.error("Failed to save local notes to localStorage", e)
+      }
+      return next
+    })
+  }
   const [addPaperOpen, setAddPaperOpen] = useState(false)
   const [paperAddTab, setPaperAddTab] = useState<"upload" | "url">("upload")
   const [uploadedPdfFile, setUploadedPdfFile] = useState<File | null>(null)
@@ -5899,10 +5961,9 @@ export function ResearchTeamManagerApp({
   const [isDragOver, setIsDragOver] = useState(false)
   const pdfFileInputRef = useRef<HTMLInputElement>(null)
 
-  // Map real database notes from PostgreSQL
+  // Map real database notes from PostgreSQL and merge with local notes
   const dbNotes: Note[] = useMemo(() => {
-    if (!researchNotesData?.notes) return []
-    return researchNotesData.notes.map((rn) => ({
+    const remoteNotes = (researchNotesData?.notes || []).map((rn) => ({
       id: rn.id,
       slugId: rn.slugId,
       spaceSlug: rn.spaceSlug || defaultSpaceSlug,
@@ -5928,7 +5989,16 @@ export function ResearchTeamManagerApp({
       isPublished: rn.isPublished,
       projectId: rn.projectId,
     }))
-  }, [researchNotesData, defaultSpaceSlug, currentUserId, currentUser, team.leaderId])
+
+    const remoteIds = new Set(remoteNotes.map((n) => String(n.id)))
+    const remoteSlugs = new Set(remoteNotes.map((n) => n.slugId).filter(Boolean))
+
+    const filteredLocal = localNotes.filter(
+      (ln) => !remoteIds.has(String(ln.id)) && (!ln.slugId || !remoteSlugs.has(ln.slugId)),
+    )
+
+    return [...remoteNotes, ...filteredLocal]
+  }, [researchNotesData, localNotes, defaultSpaceSlug, currentUserId, currentUser, team.leaderId])
 
   const projectsWithLiveCounts = useMemo(() => {
     return projects.map((p) => {
@@ -5982,25 +6052,73 @@ export function ResearchTeamManagerApp({
   }
 
   const handleCreateNote = async () => {
-    try {
-      const res = await createPageMutation.mutateAsync({
-        spaceId: defaultSpaceId,
-        title: "Untitled Note",
-        isPublished: false,
-        projectId: selectedProject ? String(selectedProject.id) : undefined,
-      })
-      navigate(`/s/${res.space?.slug || defaultSpaceSlug}/p/${res.slugId}`)
-    } catch (err) {
-      console.error("Failed to create note in Docmost:", err)
+    const tempId = `local-${Date.now()}`
+    const tempSlugId = Math.random().toString(36).substring(2, 10)
+    const newNote: Note = {
+      id: tempId,
+      slugId: tempSlugId,
+      spaceSlug: defaultSpaceSlug,
+      title: "Untitled Note",
+      author: {
+        id: currentUser.id,
+        name: currentUser.name || "Researcher",
+        email: currentUser.email || "researcher@0x7.internal",
+        role: currentUser.role || "Researcher",
+        avatar: currentUser.avatar || "",
+        notes: 0,
+        papers: 0,
+        tasks: 0,
+        share: 0,
+      },
+      time: new Date().toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+      tags: ["Analysis"],
+      preview: "New research note draft...",
+      body: "",
+      isPublished: false,
+      projectId: selectedProject ? String(selectedProject.id) : undefined,
     }
+
+    saveLocalNote(newNote)
+    setEditingNote(newNote)
+    setIsNoteEditorOpen(true)
+
+    try {
+      const res: any = await api.post("/research/create-note", {
+        title: "Untitled Note",
+        projectId: selectedProject ? String(selectedProject.id) : undefined,
+        isPublished: false,
+        authorName: currentUser.name,
+        authorStudentId: currentUser.studentId,
+        spaceId: defaultSpaceId,
+      })
+      const data = res?.data || res
+      if (data?.note) {
+        const syncedNote: Note = {
+          ...newNote,
+          id: data.note.id,
+          slugId: data.note.slugId,
+          spaceSlug: data.note.spaceSlug || defaultSpaceSlug,
+        }
+        saveLocalNote(syncedNote)
+        setEditingNote(syncedNote)
+      }
+    } catch (err: any) {
+      console.warn("Could not sync note immediately to database, preserved locally:", err?.message)
+    }
+
+    notifications.show({
+      title: "Note Created",
+      message: "New research note created and ready for editing.",
+      color: "emerald",
+    })
   }
 
   const handleOpenNote = (note: Note) => {
-    if (note.slugId) {
-      navigate(`/s/${note.spaceSlug || defaultSpaceSlug}/p/${note.slugId}`)
-    } else {
-      setSelectedNote(note)
-    }
+    setEditingNote(note)
+    setIsNoteEditorOpen(true)
   }
 
   const handleTogglePublish = (noteId: string | number, isPublished: boolean) => {
@@ -6238,7 +6356,7 @@ export function ResearchTeamManagerApp({
     setReadingPaper(paper)
   }
 
-  const handleOpenPaperInSplitView = async (paper: Paper) => {
+  const handleOpenPaperInSplitView = (paper: Paper) => {
     setSelectedPaper(null)
     setReadingPaper(null)
     const pdfUrl = paper.pdfDataUrl || paper.url
@@ -6255,27 +6373,7 @@ export function ResearchTeamManagerApp({
     setSplitPdfName(paper.title)
     setIsSplitViewOpen(true)
     setSplitViewMode("split")
-
-    const projectNotes = selectedProject
-      ? dbNotes.filter((rn) => String(rn.projectId) === String(selectedProject.id))
-      : dbNotes
-
-    if (projectNotes.length > 0) {
-      const targetNote = projectNotes[0]
-      navigate(`/s/${targetNote.spaceSlug || defaultSpaceSlug}/p/${targetNote.slugId}`)
-    } else {
-      try {
-        const res = await createPageMutation.mutateAsync({
-          spaceId: defaultSpaceId,
-          title: `Notes: ${paper.title}`,
-          isPublished: false,
-          projectId: selectedProject ? String(selectedProject.id) : undefined,
-        })
-        navigate(`/s/${res.space?.slug || defaultSpaceSlug}/p/${res.slugId}`)
-      } catch (err) {
-        console.error("Failed to auto-create note for split view:", err)
-      }
-    }
+    setSplitPaper(paper)
   }
 
   const handleDeletePaper = (paperId: number | string) => {
@@ -6832,6 +6930,41 @@ export function ResearchTeamManagerApp({
           paper={readingPaper}
           onClose={() => setReadingPaper(null)}
           onSplitView={handleOpenPaperInSplitView}
+        />
+      )}
+
+      {splitPaper && (
+        <InAppSplitViewModal
+          paper={splitPaper}
+          projectTitle={selectedProject?.title}
+          projectId={selectedProject?.id}
+          currentUser={currentUser}
+          defaultSpaceSlug={defaultSpaceSlug}
+          defaultSpaceId={defaultSpaceId}
+          onClose={() => setSplitPaper(null)}
+          onSaveNoteSuccess={(savedNote) => {
+            saveLocalNote(savedNote)
+          }}
+          onNavigateDocmost={(url) => navigate(url)}
+        />
+      )}
+
+      {isNoteEditorOpen && (
+        <InAppNoteEditorModal
+          note={editingNote}
+          projects={projects.map((p) => ({ id: p.id, title: p.title }))}
+          currentUser={currentUser}
+          defaultSpaceSlug={defaultSpaceSlug}
+          defaultSpaceId={defaultSpaceId}
+          onClose={() => {
+            setIsNoteEditorOpen(false)
+            setEditingNote(null)
+          }}
+          onSaveNote={(updatedNote) => {
+            saveLocalNote(updatedNote as Note)
+          }}
+          onDeleteNote={(noteId) => handleDeleteNote(noteId)}
+          onNavigateDocmost={(url) => navigate(url)}
         />
       )}
 

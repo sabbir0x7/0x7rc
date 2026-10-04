@@ -16,14 +16,25 @@ import {
   VerifyOtpDto,
   VerifyStudentDto,
 } from './dto/research-auth.dto';
-import { comparePasswordHash, hashPassword } from '../../common/helpers';
+import { comparePasswordHash, generateSlugId, hashPassword } from '../../common/helpers';
 import { STUDENT_VERIFICATION_DATABASE } from './data/official-students';
+import * as jwt from 'jsonwebtoken';
+import { FastifyReply } from 'fastify';
+import { JwtType } from '../auth/dto/jwt-payload';
+import { EnvironmentService } from '../../integrations/environment/environment.service';
+import { WorkspaceRepo } from '@docmost/db/repos/workspace/workspace.repo';
+import { UserRepo } from '@docmost/db/repos/user/user.repo';
 
 @Injectable()
 export class ResearchAuthService implements OnModuleInit {
   private readonly logger = new Logger(ResearchAuthService.name);
 
-  constructor(@InjectKysely() private readonly db: KyselyDB) {}
+  constructor(
+    @InjectKysely() private readonly db: KyselyDB,
+    private readonly environmentService: EnvironmentService,
+    private readonly workspaceRepo: WorkspaceRepo,
+    private readonly userRepo: UserRepo,
+  ) {}
 
   async onModuleInit() {
     try {
@@ -493,6 +504,230 @@ export class ResearchAuthService implements OnModuleInit {
     return {
       success: true,
       message: 'All created research accounts and OTP records have been deleted successfully.',
+    };
+  }
+
+  async syncSession(
+    userData: { studentId?: string; email?: string; name?: string; role?: string },
+    reply?: FastifyReply,
+  ) {
+    // 1. Ensure workspace exists
+    let workspace = await this.workspaceRepo.findFirst();
+    if (!workspace) {
+      const [newWs]: any = await sql`
+        INSERT INTO workspaces (id, name, slug, default_role, created_at, updated_at)
+        VALUES (gen_random_uuid(), '0x7 Research Center', '0x7-core', 'ADMIN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING *
+      `.execute(this.db);
+      workspace = newWs;
+    }
+
+    // 2. Ensure default space exists
+    let space: any = await this.db
+      .selectFrom('spaces' as any)
+      .selectAll()
+      .where('workspace_id', '=', workspace.id)
+      .executeTakeFirst();
+
+    if (!space) {
+      const [newSpace]: any = await sql`
+        INSERT INTO spaces (id, workspace_id, name, slug, icon, is_public, created_at, updated_at)
+        VALUES (gen_random_uuid(), ${workspace.id}, 'Research Notes', 'general', 'notebook', true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        RETURNING *
+      `.execute(this.db);
+      space = newSpace;
+    }
+
+    // 3. Match or create user in Docmost users table
+    const sId = userData?.studentId?.trim() || '0272320005101220';
+    const email = (userData?.email?.trim() || `${sId}@0x7.internal`).toLowerCase();
+    const name = userData?.name?.trim() || (sId === '0272320005101220' ? 'Md Sabbir Ahmed' : 'Researcher');
+    const isLeader = sId === '0272320005101220' || userData?.role?.toLowerCase().includes('leader');
+    const docmostRole = isLeader ? 'ADMIN' : 'MEMBER';
+
+    let user: any = await this.userRepo.findByEmail(email, workspace.id);
+    if (!user) {
+      const firstAdmin = await this.userRepo.findFirstAdmin(workspace.id);
+      if (firstAdmin && !userData?.email) {
+        user = firstAdmin;
+      } else {
+        const [newUser]: any = await sql`
+          INSERT INTO users (id, workspace_id, name, email, role, status, email_verified_at, created_at, updated_at)
+          VALUES (gen_random_uuid(), ${workspace.id}, ${name}, ${email}, ${docmostRole}, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+          RETURNING *
+        `.execute(this.db);
+        user = newUser;
+      }
+    }
+
+    // 4. Ensure space membership
+    try {
+      await sql`
+        INSERT INTO space_members (space_id, user_id, role, created_at, updated_at)
+        VALUES (${space.id}, ${user.id}, ${isLeader ? 'ADMIN' : 'WRITER'}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ON CONFLICT DO NOTHING
+      `.execute(this.db);
+    } catch {
+      // ignore
+    }
+
+    // 5. Generate Docmost JWT
+    const token = jwt.sign(
+      {
+        sub: user.id,
+        email: user.email,
+        workspaceId: workspace.id,
+        type: JwtType.ACCESS,
+      },
+      this.environmentService.getAppSecret(),
+      { expiresIn: '30d' },
+    );
+
+    // 6. Set cookie on response
+    if (reply && typeof reply.setCookie === 'function') {
+      try {
+        reply.setCookie('authToken', token, {
+          httpOnly: true,
+          sameSite: 'lax',
+          path: '/',
+          expires: this.environmentService.getCookieExpiresIn(),
+          secure: this.environmentService.isHttps(),
+        });
+      } catch (err: any) {
+        this.logger.warn(`Could not set authToken cookie: ${err?.message}`);
+      }
+    }
+
+    return {
+      success: true,
+      token,
+      workspaceId: workspace.id,
+      spaceId: space.id,
+      spaceSlug: space.slug || 'general',
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    };
+  }
+
+  async createResearchNote(dto: {
+    title: string;
+    content?: string;
+    projectId?: string;
+    isPublished?: boolean;
+    authorName?: string;
+    authorStudentId?: string;
+    authorId?: string;
+    spaceId?: string;
+  }) {
+    const title = dto.title?.trim() || 'Untitled Note';
+    const textContent = dto.content?.trim() || '';
+    const projectId = dto.projectId ? String(dto.projectId) : null;
+    const isPublished = dto.isPublished === true;
+
+    // 1. Sync session to get workspace and space
+    const session = await this.syncSession({
+      studentId: dto.authorStudentId,
+      name: dto.authorName,
+      role: dto.authorStudentId === '0272320005101220' ? 'Team Leader' : 'Researcher',
+    });
+
+    const workspaceId = session.workspaceId;
+    const spaceId = dto.spaceId || session.spaceId;
+    const creatorId = session.user.id;
+    const slugId = generateSlugId();
+
+    // 2. Insert into pages table directly
+    const [createdPage]: any = await sql`
+      INSERT INTO pages (
+        id, slug_id, title, workspace_id, space_id, creator_id, last_updated_by_id,
+        is_published, project_id, text_content, created_at, updated_at
+      )
+      VALUES (
+        gen_random_uuid(), ${slugId}, ${title}, ${workspaceId}, ${spaceId}, ${creatorId}, ${creatorId},
+        ${isPublished}, ${projectId}, ${textContent}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+      )
+      RETURNING *
+    `.execute(this.db);
+
+    const spaceSlug = session.spaceSlug || 'general';
+
+    return {
+      success: true,
+      note: {
+        id: createdPage.id,
+        slugId: createdPage.slug_id || slugId,
+        title: createdPage.title,
+        isPublished: createdPage.is_published === true,
+        projectId: createdPage.project_id || projectId,
+        spaceSlug,
+        spaceId,
+        createdAt: createdPage.created_at || new Date().toISOString(),
+        updatedAt: createdPage.updated_at || new Date().toISOString(),
+        author: {
+          id: creatorId,
+          name: dto.authorName || session.user.name || 'Researcher',
+          avatar: '',
+        },
+        preview: textContent.slice(0, 140) || 'Empty note content...',
+        content: textContent,
+      },
+    };
+  }
+
+  async getResearchNotes(projectId?: string) {
+    const workspace = await this.workspaceRepo.findFirst();
+    if (!workspace) {
+      return { notes: [], totalNotes: 0, publishedNotesCount: 0 };
+    }
+
+    let query = this.db
+      .selectFrom('pages' as any)
+      .selectAll()
+      .where('workspace_id', '=', workspace.id)
+      .where('deleted_at', 'is', null);
+
+    if (projectId) {
+      query = query.where('project_id', '=', String(projectId));
+    }
+
+    const rawPages: any[] = await query
+      .orderBy('created_at', 'desc')
+      .execute()
+      .catch(() => []);
+
+    const notes = rawPages.map((p) => {
+      const preview = p.text_content
+        ? p.text_content.slice(0, 140).trim()
+        : 'Empty note content...';
+
+      return {
+        id: p.id,
+        slugId: p.slug_id || p.slugId,
+        title: p.title || 'Untitled Note',
+        isPublished: p.is_published === true,
+        projectId: p.project_id || null,
+        spaceSlug: 'general',
+        spaceId: p.space_id,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        author: {
+          id: p.creator_id || 'researcher',
+          name: 'Researcher',
+          avatar: '',
+        },
+        preview,
+        content: p.text_content || '',
+      };
+    });
+
+    return {
+      notes,
+      totalNotes: notes.length,
+      publishedNotesCount: notes.filter((n) => n.isPublished).length,
     };
   }
 }

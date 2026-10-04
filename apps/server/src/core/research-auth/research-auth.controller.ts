@@ -5,7 +5,10 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
+  Res,
 } from '@nestjs/common';
+import { FastifyReply } from 'fastify';
 import {
   LoginResearchUserDto,
   RegisterResearchUserDto,
@@ -39,14 +42,89 @@ export class ResearchAuthController {
 
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
-  async register(@Body() dto: RegisterResearchUserDto) {
-    return this.researchAuthService.register(dto);
+  async register(
+    @Body() dto: RegisterResearchUserDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const result = await this.researchAuthService.register(dto);
+    const session = await this.researchAuthService.syncSession(
+      {
+        studentId: result.user.studentId,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+      },
+      res,
+    );
+    return {
+      ...result,
+      sessionToken: session.token,
+      workspaceId: session.workspaceId,
+      spaceId: session.spaceId,
+      spaceSlug: session.spaceSlug,
+    };
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
-  async login(@Body() dto: LoginResearchUserDto) {
-    return this.researchAuthService.login(dto);
+  async login(
+    @Body() dto: LoginResearchUserDto,
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    const result = await this.researchAuthService.login(dto);
+    const session = await this.researchAuthService.syncSession(
+      {
+        studentId: result.user.studentId,
+        email: result.user.email,
+        name: result.user.name,
+        role: result.user.role,
+      },
+      res,
+    );
+    return {
+      ...result,
+      sessionToken: session.token,
+      workspaceId: session.workspaceId,
+      spaceId: session.spaceId,
+      spaceSlug: session.spaceSlug,
+    };
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('sync-session')
+  async syncSession(
+    @Body() dto: { studentId?: string; email?: string; name?: string; role?: string },
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    return this.researchAuthService.syncSession(dto, res);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('create-note')
+  async createNote(
+    @Body() dto: {
+      title: string;
+      content?: string;
+      projectId?: string;
+      isPublished?: boolean;
+      authorName?: string;
+      authorStudentId?: string;
+      authorId?: string;
+      spaceId?: string;
+    },
+    @Res({ passthrough: true }) res: FastifyReply,
+  ) {
+    await this.researchAuthService.syncSession(
+      { studentId: dto.authorStudentId, name: dto.authorName },
+      res,
+    );
+    return this.researchAuthService.createResearchNote(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('notes')
+  async getNotes(@Query('projectId') projectId?: string) {
+    return this.researchAuthService.getResearchNotes(projectId);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -61,3 +139,4 @@ export class ResearchAuthController {
     return this.researchAuthService.cleanAllAccounts();
   }
 }
+

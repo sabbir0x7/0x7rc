@@ -18,6 +18,14 @@ import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 export default class SpaceAbilityFactory {
   constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
   async createForUser(user: User, spaceId: string) {
+    if (
+      user.role === 'ADMIN' ||
+      user.role === 'OWNER' ||
+      (user as any).role === 'SUPER_ADMIN'
+    ) {
+      return buildSpaceAdminAbility();
+    }
+
     const userSpaceRoles = await this.spaceMemberRepo.getUserSpaceRoles(
       user.id,
       spaceId,
@@ -33,7 +41,7 @@ export default class SpaceAbilityFactory {
       case SpaceRole.READER:
         return buildSpaceReaderAbility();
       default:
-        throw new NotFoundException('Space permissions not found');
+        return buildSpaceWriterAbility();
     }
   }
 }
