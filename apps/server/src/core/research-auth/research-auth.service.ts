@@ -553,7 +553,7 @@ export class ResearchAuthService implements OnModuleInit {
         try {
           const [newWs]: any = await sql`
             INSERT INTO workspaces (id, name, default_role, created_at, updated_at)
-            VALUES (gen_random_uuid(), '0x7 Research Center', 'ADMIN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (gen_random_uuid(), '0x7Note', 'ADMIN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *
           `.execute(this.db);
           workspace = newWs;
@@ -585,7 +585,7 @@ export class ResearchAuthService implements OnModuleInit {
         try {
           const [newSpace]: any = await sql`
             INSERT INTO spaces (id, workspace_id, name, slug, visibility, default_role, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${workspace.id}, 'Research Notes', 'general', 'PUBLIC', 'WRITER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (gen_random_uuid(), ${workspace.id}, '0x7Note', 'general', 'PUBLIC', 'WRITER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *
           `.execute(this.db);
           space = newSpace;

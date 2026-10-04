@@ -926,13 +926,6 @@ function Sidebar({
             <Icon name="home" />
             Dashboard
           </button>
-          <a
-            href="/home"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-indigo-50/60 hover:text-indigo-700"
-          >
-            <Icon name="notes" />
-            <span>Docmost Wiki & Spaces</span>
-          </a>
           <button
             onClick={onTrash}
             className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
@@ -2558,7 +2551,7 @@ function NotesTab({
                 {note.title || "Untitled Note"}
               </h3>
               <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-500">
-                {note.preview || "No preview text recorded yet. Open in Docmost editor to write."}
+                {note.preview || "No preview text recorded yet. Open in 0x7Note editor to write."}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {note.tags.map((item) => (
@@ -2574,7 +2567,7 @@ function NotesTab({
                 onClick={() => openNote(note)}
               >
                 <Icon name="notes" className="size-4" />
-                Open in Docmost
+                Open in 0x7Note
               </Button>
               <Button
                 variant="secondary"
@@ -2625,7 +2618,7 @@ function NotesTab({
           </h3>
           <p className="mt-1 text-sm text-slate-500">
             {listMode === "mine"
-              ? "Create your first personal research note in Docmost."
+              ? "Create your first personal research note in 0x7Note."
               : "Publish a note to share your findings with all 4 team members."}
           </p>
           <div className="mt-4">

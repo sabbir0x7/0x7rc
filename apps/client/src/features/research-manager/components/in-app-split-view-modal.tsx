@@ -383,7 +383,7 @@ export const InAppSplitViewModal: FC<InAppSplitViewModalProps> = ({
             <span>Save Note</span>
           </button>
 
-          {/* Open in Docmost Page */}
+          {/* Open in 0x7Note Page */}
           {createdNoteSlugId && onNavigateDocmost && (
             <button
               type="button"
@@ -391,10 +391,10 @@ export const InAppSplitViewModal: FC<InAppSplitViewModalProps> = ({
                 onNavigateDocmost(`/s/${defaultSpaceSlug}/p/${createdNoteSlugId}`)
               }
               className="hidden lg:flex items-center gap-1.5 rounded-lg border border-[#1c3327] bg-[#111e18] px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:bg-[#1c3327] hover:text-white transition cursor-pointer"
-              title="Open full page in Docmost"
+              title="Open full page in 0x7Note"
             >
               <IconExternalLink className="size-3.5" />
-              <span>Docmost</span>
+              <span>0x7Note</span>
             </button>
           )}
 

@@ -225,7 +225,7 @@ export const InAppNoteEditorModal: FC<InAppNoteEditorModalProps> = ({
               <span>{isPublished ? "Team Published" : "Personal Draft"}</span>
             </button>
 
-            {/* Open in Docmost Editor Button */}
+            {/* Open in 0x7Note Editor Button */}
             {note?.slugId && onNavigateDocmost && (
               <button
                 type="button"
@@ -235,10 +235,10 @@ export const InAppNoteEditorModal: FC<InAppNoteEditorModalProps> = ({
                   )
                 }
                 className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-lg border border-[#1c3327] bg-[#111e18] text-xs font-semibold text-slate-300 hover:text-white transition cursor-pointer"
-                title="Open full page in Docmost"
+                title="Open full page in 0x7Note"
               >
                 <IconExternalLink className="size-3.5" />
-                <span>Open in Docmost</span>
+                <span>Open in 0x7Note</span>
               </button>
             )}
 
