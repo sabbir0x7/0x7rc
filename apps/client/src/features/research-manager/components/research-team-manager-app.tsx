@@ -31,7 +31,6 @@ import { AccountSettingsModal } from "./account-settings-modal"
 import { AiRoadmapChatbox } from "./ai-roadmap-chatbox"
 import { RoadmapPhase, BoardTaskItem, PhaseTask } from "../services/gemini-roadmap-service"
 import { InAppSplitViewModal } from "./in-app-split-view-modal"
-import { InAppNoteEditorModal } from "./in-app-note-editor-modal"
 import { useSetAtom } from "jotai"
 import {
   isSplitViewOpenAtom,
@@ -552,7 +551,7 @@ function Button({
   variant?: "primary" | "secondary" | "ghost"
   className?: string
   type?: "button" | "submit"
-  onClick?: () => void
+  onClick?: (e?: any) => void
   disabled?: boolean
   title?: string
 }) {
@@ -2526,7 +2525,8 @@ function NotesTab({
         {visibleNotes.map((note) => (
           <article
             key={note.id}
-            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md"
+            onClick={() => openNote(note)}
+            className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md cursor-pointer"
           >
             <div>
               <div className="flex items-center gap-3">
@@ -2560,7 +2560,10 @@ function NotesTab({
               </div>
             </div>
 
-            <div className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4">
+            <div
+              className="mt-5 flex items-center gap-2 border-t border-slate-100 pt-4"
+              onClick={(e) => e.stopPropagation()}
+            >
               <Button
                 variant="secondary"
                 className="flex-1"
@@ -5298,7 +5301,7 @@ export function ResearchTeamManagerApp({
   initialView,
 }: ResearchTeamManagerProps = {}) {
   const navigate = useNavigate()
-  const { data: researchNotesData } = useResearchNotesQuery()
+  const { data: researchNotesData, refetch: refetchResearchNotes } = useResearchNotesQuery()
   const { data: spacesData } = useGetSpacesQuery()
   const [syncedSpaceId, setSyncedSpaceId] = useState<string>("")
   const [syncedSpaceSlug, setSyncedSpaceSlug] = useState<string>("")
@@ -5916,8 +5919,6 @@ export function ResearchTeamManagerApp({
   const [selectedPaper, setSelectedPaper] = useState<Paper | null>(null)
   const [readingPaper, setReadingPaper] = useState<Paper | null>(null)
   const [splitPaper, setSplitPaper] = useState<Paper | null>(null)
-  const [editingNote, setEditingNote] = useState<Note | null>(null)
-  const [isNoteEditorOpen, setIsNoteEditorOpen] = useState(false)
   const [localNotes, setLocalNotes] = useState<Note[]>(() => {
     try {
       const saved = localStorage.getItem("0x7_research_notes")
@@ -6052,73 +6053,107 @@ export function ResearchTeamManagerApp({
   }
 
   const handleCreateNote = async () => {
-    const tempId = `local-${Date.now()}`
-    const tempSlugId = Math.random().toString(36).substring(2, 10)
-    const newNote: Note = {
-      id: tempId,
-      slugId: tempSlugId,
-      spaceSlug: defaultSpaceSlug,
-      title: "Untitled Note",
-      author: {
-        id: currentUser.id,
-        name: currentUser.name || "Researcher",
-        email: currentUser.email || "researcher@0x7.internal",
-        role: currentUser.role || "Researcher",
-        avatar: currentUser.avatar || "",
-        notes: 0,
-        papers: 0,
-        tasks: 0,
-        share: 0,
-      },
-      time: new Date().toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      }),
-      tags: ["Analysis"],
-      preview: "New research note draft...",
-      body: "",
-      isPublished: false,
-      projectId: selectedProject ? String(selectedProject.id) : undefined,
+    notifications.show({
+      id: "creating-note",
+      title: "Opening 0x7Note",
+      message: "Creating new note in 0x7Note editor...",
+      color: "indigo",
+      loading: true,
+      autoClose: false,
+      withCloseButton: false,
+    })
+
+    try {
+      let spaceSlug = defaultSpaceSlug || "general"
+      let slugId: string | null = null
+
+      try {
+        const pageRes = await createPageMutation.mutateAsync({
+          spaceId: defaultSpaceId,
+          title: "Untitled Note",
+          isPublished: false,
+          projectId: selectedProject ? String(selectedProject.id) : undefined,
+        })
+        if (pageRes?.slugId) {
+          slugId = pageRes.slugId
+          spaceSlug = pageRes.space?.slug || spaceSlug
+        }
+      } catch (mutationErr) {
+        console.warn("createPageMutation failed, trying /research/create-note:", mutationErr)
+      }
+
+      if (!slugId) {
+        const res: any = await api.post("/research/create-note", {
+          title: "Untitled Note",
+          projectId: selectedProject ? String(selectedProject.id) : undefined,
+          isPublished: false,
+          authorName: currentUser.name,
+          authorStudentId: currentUser.studentId,
+          spaceId: defaultSpaceId,
+        })
+        const data = res?.data || res
+        if (data?.note?.slugId) {
+          slugId = data.note.slugId
+          spaceSlug = data.note.spaceSlug || spaceSlug
+        }
+      }
+
+      notifications.hide("creating-note")
+
+      if (slugId) {
+        if (refetchResearchNotes) {
+          refetchResearchNotes()
+        }
+        navigate(`/s/${spaceSlug}/p/${slugId}`)
+      } else {
+        notifications.show({
+          title: "Error",
+          message: "Failed to open 0x7Note editor. Please try again.",
+          color: "red",
+        })
+      }
+    } catch (err: any) {
+      notifications.hide("creating-note")
+      notifications.show({
+        title: "Creation Error",
+        message: err?.message || "Failed to create note in 0x7Note.",
+        color: "red",
+      })
+    }
+  }
+
+  const handleOpenNote = async (note: Note) => {
+    const space = note.spaceSlug || defaultSpaceSlug || "general"
+    if (note.slugId) {
+      navigate(`/s/${space}/p/${note.slugId}`)
+      return
     }
 
-    saveLocalNote(newNote)
-    setEditingNote(newNote)
-    setIsNoteEditorOpen(true)
+    if (note.id && !String(note.id).startsWith("local-")) {
+      navigate(`/s/${space}/p/${note.id}`)
+      return
+    }
 
     try {
       const res: any = await api.post("/research/create-note", {
-        title: "Untitled Note",
+        title: note.title || "Untitled Note",
+        content: note.body || "",
         projectId: selectedProject ? String(selectedProject.id) : undefined,
-        isPublished: false,
+        isPublished: note.isPublished ?? false,
         authorName: currentUser.name,
         authorStudentId: currentUser.studentId,
         spaceId: defaultSpaceId,
       })
       const data = res?.data || res
-      if (data?.note) {
-        const syncedNote: Note = {
-          ...newNote,
-          id: data.note.id,
-          slugId: data.note.slugId,
-          spaceSlug: data.note.spaceSlug || defaultSpaceSlug,
-        }
-        saveLocalNote(syncedNote)
-        setEditingNote(syncedNote)
+      if (data?.note?.slugId) {
+        navigate(`/s/${data.note.spaceSlug || defaultSpaceSlug || "general"}/p/${data.note.slugId}`)
+        return
       }
-    } catch (err: any) {
-      console.warn("Could not sync note immediately to database, preserved locally:", err?.message)
+    } catch (e) {
+      console.warn("Failed to sync local note:", e)
     }
 
-    notifications.show({
-      title: "Note Created",
-      message: "New research note created and ready for editing.",
-      color: "emerald",
-    })
-  }
-
-  const handleOpenNote = (note: Note) => {
-    setEditingNote(note)
-    setIsNoteEditorOpen(true)
+    navigate(`/s/${space}/p/${note.id}`)
   }
 
   const handleTogglePublish = (noteId: string | number, isPublished: boolean) => {
@@ -6949,24 +6984,7 @@ export function ResearchTeamManagerApp({
         />
       )}
 
-      {isNoteEditorOpen && (
-        <InAppNoteEditorModal
-          note={editingNote}
-          projects={projects.map((p) => ({ id: p.id, title: p.title }))}
-          currentUser={currentUser}
-          defaultSpaceSlug={defaultSpaceSlug}
-          defaultSpaceId={defaultSpaceId}
-          onClose={() => {
-            setIsNoteEditorOpen(false)
-            setEditingNote(null)
-          }}
-          onSaveNote={(updatedNote) => {
-            saveLocalNote(updatedNote as Note)
-          }}
-          onDeleteNote={(noteId) => handleDeleteNote(noteId)}
-          onNavigateDocmost={(url) => navigate(url)}
-        />
-      )}
+
 
       <AccountSettingsModal
         isOpen={isAccountModalOpen}

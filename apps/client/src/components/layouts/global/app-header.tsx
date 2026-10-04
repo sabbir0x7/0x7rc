@@ -84,22 +84,22 @@ export function AppHeader() {
             />
           </Tooltip>
 
-          <Link to="/dashboard" className={classes.brand} aria-label="0x7 Research Center">
+          <Link to="/dashboard" className={classes.brand} aria-label="0x7Note">
             <Box hiddenFrom="sm" className={classes.brandIcon}>
               <img
                 src="/icons/favicon-32x32.png"
-                alt="0x7 Research Center"
+                alt="0x7Note"
                 width={22}
                 height={22}
               />
             </Box>
             <Text
               size="lg"
-              fw={600}
-              style={{ userSelect: "none" }}
+              fw={700}
+              style={{ userSelect: "none", letterSpacing: "-0.02em" }}
               visibleFrom="sm"
             >
-              0x7 Research Center
+              0x7Note
             </Text>
           </Link>
 
