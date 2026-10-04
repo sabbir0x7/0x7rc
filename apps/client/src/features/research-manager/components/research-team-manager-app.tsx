@@ -926,6 +926,13 @@ function Sidebar({
             <Icon name="home" />
             Dashboard
           </button>
+          <a
+            href="/home"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-indigo-50/60 hover:text-indigo-700"
+          >
+            <Icon name="notes" />
+            <span>Docmost Wiki & Spaces</span>
+          </a>
           <button
             onClick={onTrash}
             className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-sm font-semibold transition ${
