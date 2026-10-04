@@ -40,12 +40,15 @@ api.interceptors.response.use(
             pathname = error.config?.url || "";
           }
           if (pathname === "/api/auth/collab-token") return;
-          if (pathname.includes("/research/")) break;
+          if (pathname.includes("/research")) break;
           if (window.location.pathname.startsWith("/share/")) return;
-          // public docs probe authed endpoints; reject without the login redirect
+          // Never redirect if user is on research dashboard, landing page, or public docs
           if (
-            window.location.pathname === "/docs" ||
-            window.location.pathname.startsWith("/docs/")
+            window.location.pathname === "/dashboard" ||
+            window.location.pathname.startsWith("/dashboard") ||
+            window.location.pathname === "/welcome" ||
+            window.location.pathname === "/" ||
+            window.location.pathname.startsWith("/docs")
           ) {
             break;
           }
@@ -80,8 +83,10 @@ function redirectToLogin() {
     APP_ROUTE.AUTH.MFA_CHALLENGE,
     APP_ROUTE.AUTH.MFA_SETUP_REQUIRED,
     "/invites",
-    // the oauth consent page redirects to login itself, preserving its query string
     "/oauth/consent",
+    "/dashboard",
+    "/welcome",
+    "/",
   ];
   if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {
     const redirectTo = window.location.pathname;

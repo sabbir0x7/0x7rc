@@ -5233,19 +5233,50 @@ export function ResearchLandingPage({
             )}
 
             {authStep !== "referral" && (
-              <p className="mt-6 text-center text-xs text-slate-500">
-                {authMode === "login"
-                  ? "New to 0x7 Research?"
-                  : "Already have an account?"}{" "}
-                <button
-                  onClick={() =>
-                    setAuthMode(authMode === "login" ? "signup" : "login")
-                  }
-                  className="font-bold text-indigo-600 hover:text-indigo-700"
-                >
-                  {authMode === "login" ? "Create account" : "Log in"}
-                </button>
-              </p>
+              <>
+                <p className="mt-6 text-center text-xs text-slate-500">
+                  {authMode === "login"
+                    ? "New to 0x7 Research?"
+                    : "Already have an account?"}{" "}
+                  <button
+                    onClick={() =>
+                      setAuthMode(authMode === "login" ? "signup" : "login")
+                    }
+                    className="font-bold text-indigo-600 hover:text-indigo-700"
+                  >
+                    {authMode === "login" ? "Create account" : "Log in"}
+                  </button>
+                </p>
+                <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Fresh Start:</span>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      if (window.confirm("Are you sure you want to wipe all created accounts and OTPs to start fresh?")) {
+                        try {
+                          await api.post("/research/clean-all-accounts")
+                          localStorage.removeItem("0x7_user_profile")
+                          localStorage.removeItem("0x7_research_auth_user")
+                          notifications.show({
+                            title: "All Accounts Cleared",
+                            message: "All created accounts and OTPs have been completely removed. You can now register fresh.",
+                            color: "green",
+                          })
+                        } catch {
+                          notifications.show({
+                            title: "Reset Failed",
+                            message: "Failed to reset accounts.",
+                            color: "red",
+                          })
+                        }
+                      }
+                    }}
+                    className="text-rose-500 hover:text-rose-700 font-semibold hover:underline cursor-pointer"
+                  >
+                    Wipe & Reset All Accounts
+                  </button>
+                </div>
+              </>
             )}
           </div>
         </div>

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -46,5 +47,17 @@ export class ResearchAuthController {
   @Post('login')
   async login(@Body() dto: LoginResearchUserDto) {
     return this.researchAuthService.login(dto);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('clean-all-accounts')
+  async cleanAllAccountsGet() {
+    return this.researchAuthService.cleanAllAccounts();
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('clean-all-accounts')
+  async cleanAllAccounts() {
+    return this.researchAuthService.cleanAllAccounts();
   }
 }

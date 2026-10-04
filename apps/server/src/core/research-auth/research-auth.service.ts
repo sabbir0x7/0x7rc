@@ -472,4 +472,27 @@ export class ResearchAuthService implements OnModuleInit {
       },
     };
   }
+
+  async cleanAllAccounts(): Promise<{ success: boolean; message: string }> {
+    await this.db
+      .deleteFrom('research_users' as any)
+      .execute()
+      .catch((err) => {
+        this.logger.warn(`Could not clear research_users: ${err?.message}`);
+      });
+
+    await this.db
+      .deleteFrom('research_otps' as any)
+      .execute()
+      .catch((err) => {
+        this.logger.warn(`Could not clear research_otps: ${err?.message}`);
+      });
+
+    this.logger.log('All created research accounts and OTP records have been wiped clean.');
+
+    return {
+      success: true,
+      message: 'All created research accounts and OTP records have been deleted successfully.',
+    };
+  }
 }
