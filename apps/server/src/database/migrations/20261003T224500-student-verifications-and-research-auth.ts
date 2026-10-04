@@ -186,7 +186,7 @@ export async function up(db: Kysely<any>): Promise<void> {
       cgpa = EXCLUDED.cgpa,
       status = EXCLUDED.status,
       updated_at = CURRENT_TIMESTAMP;
-  `;
+  `.execute(db);
 }
 
 export async function down(db: Kysely<any>): Promise<void> {

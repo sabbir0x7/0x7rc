@@ -134,8 +134,10 @@ export class DatabaseModule implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     await this.establishConnection();
 
-    if (this.environmentService.getNodeEnv() === 'production') {
+    try {
       await this.migrationService.migrateToLatest();
+    } catch (err) {
+      this.logger.error('Failed to run database migrations', err);
     }
 
     try {
