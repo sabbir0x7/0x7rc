@@ -94,6 +94,7 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     isLoading,
     isError,
     error,
+    refetch,
   } = usePageQuery({ pageId: extractPageSlugId(pageSlug) });
   const { data: space } = useGetSpaceBySlugQuery(page?.space?.slug);
 
@@ -157,13 +158,20 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
       <EmptyState
         icon={IconFileOff}
         title={t("Error fetching page data.")}
-        description={t(
-          "Unable to load note data. Please return to the research dashboard.",
-        )}
+        description={
+          (error as any)?.response?.data?.message ||
+          (error as any)?.message ||
+          t("Unable to load note data. Please return to the research dashboard.")
+        }
         action={
-          <Button component={Link} to="/dashboard" variant="default" size="sm" mt="xs">
-            {t("Go to dashboard")}
-          </Button>
+          <div style={{ display: "flex", gap: "8px", marginTop: "12px", justifyContent: "center" }}>
+            <Button variant="outline" size="sm" onClick={() => refetch()}>
+              {t("Retry")}
+            </Button>
+            <Button component={Link} to="/dashboard" variant="default" size="sm">
+              {t("Go to dashboard")}
+            </Button>
+          </div>
         }
       />
     );

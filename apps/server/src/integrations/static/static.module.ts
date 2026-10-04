@@ -16,14 +16,21 @@ export class StaticModule implements OnModuleInit {
     const httpAdapter = this.httpAdapterHost.httpAdapter;
     const app = httpAdapter.getInstance();
 
-    const clientDistPath = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      '..',
-      'client/dist',
-    );
+    const candidatePaths = [
+      join(__dirname, '..', '..', '..', '..', 'client/dist'),
+      join(__dirname, '..', '..', '..', 'client/dist'),
+      join(process.cwd(), 'apps', 'client', 'dist'),
+      join(process.cwd(), 'client', 'dist'),
+      join(process.cwd(), 'dist'),
+    ];
+
+    let clientDistPath = candidatePaths[0];
+    for (const p of candidatePaths) {
+      if (fs.existsSync(p) && fs.existsSync(join(p, 'index.html'))) {
+        clientDistPath = p;
+        break;
+      }
+    }
 
     const indexFilePath = join(clientDistPath, 'index.html');
 

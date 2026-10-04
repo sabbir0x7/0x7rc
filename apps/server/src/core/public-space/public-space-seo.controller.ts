@@ -9,6 +9,22 @@ import { Workspace } from '@docmost/db/types/entity.types';
 import { htmlEscape } from '../../common/helpers/html-escaper';
 import { PublicSpaceService } from './public-space.service';
 
+function resolveClientDistPath(): string | null {
+  const candidatePaths = [
+    join(__dirname, '..', '..', '..', '..', 'client/dist'),
+    join(__dirname, '..', '..', '..', 'client/dist'),
+    join(process.cwd(), 'apps', 'client', 'dist'),
+    join(process.cwd(), 'client', 'dist'),
+    join(process.cwd(), 'dist'),
+  ];
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p) && fs.existsSync(join(p, 'index.html'))) {
+      return p;
+    }
+  }
+  return null;
+}
+
 @Controller('docs')
 export class PublicSpaceSeoController {
   private readonly logger = new Logger(PublicSpaceSeoController.name);
@@ -30,15 +46,8 @@ export class PublicSpaceSeoController {
   ) {
     const workspace = await this.resolveWorkspace(req);
 
-    const clientDistPath = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      '..',
-      'client/dist',
-    );
-    if (!fs.existsSync(clientDistPath)) {
+    const clientDistPath = resolveClientDistPath();
+    if (!clientDistPath) {
       return;
     }
     const indexFilePath = join(clientDistPath, 'index.html');
@@ -77,16 +86,8 @@ export class PublicSpaceSeoController {
   ) {
     const workspace = await this.resolveWorkspace(req);
 
-    const clientDistPath = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      '..',
-      'client/dist',
-    );
-
-    if (!fs.existsSync(clientDistPath)) {
+    const clientDistPath = resolveClientDistPath();
+    if (!clientDistPath) {
       return;
     }
     const indexFilePath = join(clientDistPath, 'index.html');

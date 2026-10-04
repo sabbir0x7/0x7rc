@@ -105,7 +105,41 @@ export class PageRepo {
       query = query.where('slugId', '=', pageId);
     }
 
-    return query.executeTakeFirst();
+    try {
+      return await query.executeTakeFirst();
+    } catch (err: any) {
+      if (
+        err?.message?.includes('is_published') ||
+        err?.message?.includes('project_id')
+      ) {
+        const fallbackFields = this.baseFields.filter(
+          (f) => f !== 'isPublished' && f !== 'projectId',
+        );
+        let fbQuery = db
+          .selectFrom('pages')
+          .select(fallbackFields)
+          .$if(opts?.includeContent, (qb) => qb.select('content'))
+          .$if(opts?.includeYdoc, (qb) => qb.select('ydoc'))
+          .$if(opts?.includeTextContent, (qb) => qb.select('textContent'));
+        if (opts?.includeCreator) fbQuery = fbQuery.select((eb) => this.withCreator(eb));
+        if (opts?.includeLastUpdatedBy) fbQuery = fbQuery.select((eb) => this.withLastUpdatedBy(eb));
+        if (opts?.includeContributors) fbQuery = fbQuery.select((eb) => this.withContributors(eb));
+        if (opts?.includeDeletedBy) fbQuery = fbQuery.select((eb) => this.withDeletedBy(eb));
+        if (opts?.includeSpace) fbQuery = fbQuery.select((eb) => this.withSpace(eb));
+        if (isValidUUID(pageId)) {
+          fbQuery = fbQuery.where('id', '=', pageId);
+        } else {
+          fbQuery = fbQuery.where('slugId', '=', pageId);
+        }
+        const res: any = await fbQuery.executeTakeFirst();
+        if (res) {
+          res.isPublished = false;
+          res.projectId = null;
+        }
+        return res;
+      }
+      throw err;
+    }
   }
 
   async findManyByIds(
@@ -184,11 +218,35 @@ export class PageRepo {
     trx?: KyselyTransaction,
   ): Promise<Page> {
     const db = dbOrTx(this.db, trx);
-    const result = await db
-      .insertInto('pages')
-      .values(insertablePage)
-      .returning(this.baseFields)
-      .executeTakeFirst();
+    let result: any;
+    try {
+      result = await db
+        .insertInto('pages')
+        .values(insertablePage)
+        .returning(this.baseFields)
+        .executeTakeFirst();
+    } catch (err: any) {
+      if (
+        err?.message?.includes('is_published') ||
+        err?.message?.includes('project_id')
+      ) {
+        const fallbackFields = this.baseFields.filter(
+          (f) => f !== 'isPublished' && f !== 'projectId',
+        );
+        const { isPublished, projectId, ...cleanPage } = insertablePage as any;
+        result = await db
+          .insertInto('pages')
+          .values(cleanPage)
+          .returning(fallbackFields)
+          .executeTakeFirst();
+        if (result) {
+          result.isPublished = false;
+          result.projectId = null;
+        }
+      } else {
+        throw err;
+      }
+    }
 
     this.eventEmitter.emit(EventName.PAGE_CREATED, {
       pageIds: [result.id],
@@ -734,18 +792,39 @@ export class PageRepo {
   }
 
   async findResearchNotes(workspaceId: string, projectId?: string) {
-    let query = this.db
-      .selectFrom('pages')
-      .select(this.baseFields)
-      .select((eb) => this.withCreator(eb))
-      .select((eb) => this.withSpace(eb))
-      .where('workspaceId', '=', workspaceId)
-      .where('deletedAt', 'is', null);
+    try {
+      let query = this.db
+        .selectFrom('pages')
+        .select(this.baseFields)
+        .select((eb) => this.withCreator(eb))
+        .select((eb) => this.withSpace(eb))
+        .where('workspaceId', '=', workspaceId)
+        .where('deletedAt', 'is', null);
 
-    if (projectId) {
-      query = query.where('projectId', '=', projectId);
+      if (projectId) {
+        query = query.where('projectId', '=', projectId);
+      }
+
+      return await query.orderBy('createdAt', 'desc').execute();
+    } catch (err: any) {
+      if (
+        err?.message?.includes('is_published') ||
+        err?.message?.includes('project_id')
+      ) {
+        const fallbackFields = this.baseFields.filter(
+          (f) => f !== 'isPublished' && f !== 'projectId',
+        );
+        let fbQuery = this.db
+          .selectFrom('pages')
+          .select(fallbackFields)
+          .select((eb) => this.withCreator(eb))
+          .select((eb) => this.withSpace(eb))
+          .where('workspaceId', '=', workspaceId)
+          .where('deletedAt', 'is', null);
+        const rows: any[] = await fbQuery.orderBy('createdAt', 'desc').execute();
+        return rows.map((r) => ({ ...r, isPublished: false, projectId: null }));
+      }
+      throw err;
     }
-
-    return query.orderBy('createdAt', 'desc').execute();
   }
 }

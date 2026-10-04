@@ -46,6 +46,12 @@ export class ResearchAuthService implements OnModuleInit {
 
   async ensureTablesAndSeed(): Promise<void> {
     try {
+      // 0. Ensure pages table has is_published and project_id columns
+      await sql`
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS project_id VARCHAR(100);
+      `.execute(this.db).catch((e: any) => this.logger.warn(`Could not ensure pages columns: ${e?.message}`));
+
       // 1. Ensure student_verifications table exists
       await this.db.schema
         .createTable('student_verifications')
@@ -762,25 +768,41 @@ export class ResearchAuthService implements OnModuleInit {
       : null;
     const finalContentSql = docContent ? sql`${docContent}::jsonb` : sql`null`;
 
-    // 2. Insert into pages table directly using only standard columns
+    // 2. Insert into pages table directly
     let createdPage: any = null;
     if (workspaceId && spaceId && creatorId) {
       try {
         const insertRes: any = await sql`
           INSERT INTO pages (
             id, slug_id, title, workspace_id, space_id, creator_id, last_updated_by_id,
-            text_content, content, created_at, updated_at
+            text_content, content, is_published, project_id, created_at, updated_at
           )
           VALUES (
             gen_random_uuid(), ${slugId}, ${title}, ${workspaceId}, ${spaceId}, ${creatorId}, ${creatorId},
-            ${textContent || null}, ${finalContentSql}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            ${textContent || null}, ${finalContentSql}, ${isPublished}, ${projectId}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
           )
           RETURNING *
         `.execute(this.db);
         createdPage = insertRes?.rows?.[0];
       } catch (insertErr: any) {
-        this.logger.error(`Could not insert into pages table: ${insertErr?.message}`);
-        throw new BadRequestException(`Failed to create note: ${insertErr?.message}`);
+        this.logger.warn(`Could not insert with custom columns, falling back: ${insertErr?.message}`);
+        try {
+          const insertRes: any = await sql`
+            INSERT INTO pages (
+              id, slug_id, title, workspace_id, space_id, creator_id, last_updated_by_id,
+              text_content, content, created_at, updated_at
+            )
+            VALUES (
+              gen_random_uuid(), ${slugId}, ${title}, ${workspaceId}, ${spaceId}, ${creatorId}, ${creatorId},
+              ${textContent || null}, ${finalContentSql}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            )
+            RETURNING *
+          `.execute(this.db);
+          createdPage = insertRes?.rows?.[0];
+        } catch (fbErr: any) {
+          this.logger.error(`Could not insert into pages table: ${fbErr?.message}`);
+          throw new BadRequestException(`Failed to create note: ${fbErr?.message}`);
+        }
       }
     }
 

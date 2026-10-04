@@ -9,6 +9,22 @@ import { EnvironmentService } from '../../integrations/environment/environment.s
 import { Workspace } from '@docmost/db/types/entity.types';
 import { htmlEscape } from '../../common/helpers/html-escaper';
 
+function resolveClientDistPath(): string | null {
+  const candidatePaths = [
+    join(__dirname, '..', '..', '..', '..', 'client/dist'),
+    join(__dirname, '..', '..', '..', 'client/dist'),
+    join(process.cwd(), 'apps', 'client', 'dist'),
+    join(process.cwd(), 'client', 'dist'),
+    join(process.cwd(), 'dist'),
+  ];
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p) && fs.existsSync(join(p, 'index.html'))) {
+      return p;
+    }
+  }
+  return null;
+}
+
 @Controller('share')
 export class ShareSeoController {
   constructor(
@@ -42,16 +58,9 @@ export class ShareSeoController {
       workspace = await this.workspaceRepo.findByHostname(subdomain);
     }
 
-    const clientDistPath = join(
-      __dirname,
-      '..',
-      '..',
-      '..',
-      '..',
-      'client/dist',
-    );
+    const clientDistPath = resolveClientDistPath();
 
-    if (fs.existsSync(clientDistPath)) {
+    if (clientDistPath) {
       const indexFilePath = join(clientDistPath, 'index.html');
 
       if (!workspace) {

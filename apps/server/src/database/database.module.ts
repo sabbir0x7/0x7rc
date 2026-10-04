@@ -141,6 +141,15 @@ export class DatabaseModule implements OnApplicationBootstrap {
     }
 
     try {
+      await sql`
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS is_published BOOLEAN NOT NULL DEFAULT FALSE;
+        ALTER TABLE pages ADD COLUMN IF NOT EXISTS project_id VARCHAR(100);
+      `.execute(this.db);
+    } catch (colErr: any) {
+      this.logger.warn(`Could not ensure pages columns: ${colErr?.message}`);
+    }
+
+    try {
       const existingWorkspace = await this.db
         .selectFrom('workspaces')
         .select('id')
