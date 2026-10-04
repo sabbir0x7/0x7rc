@@ -4,6 +4,10 @@ export class VerifyStudentDto {
   @IsNotEmpty({ message: 'Student ID is required' })
   @IsString()
   studentId: string;
+
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
 
 export class SendOtpDto {
@@ -14,6 +18,10 @@ export class SendOtpDto {
   @IsNotEmpty({ message: 'Student ID is required' })
   @IsString()
   studentId: string;
+
+  @IsOptional()
+  @IsString()
+  role?: string;
 }
 
 export class VerifyOtpDto {

@@ -4145,38 +4145,62 @@ export function ResearchLandingPage({
   const handleVerifyStudentId = async () => {
     const cleanId = studentId.trim()
     if (!cleanId || studentIdStatus === "checking") return
+
+    // Client-side guard: Only 0272320005101220 can register as Team Leader
+    if (authMode === "signup" && accountType === "leader") {
+      const LEADER_ID = "0272320005101220"
+      if (cleanId !== LEADER_ID && !cleanId.endsWith(LEADER_ID)) {
+        setStudentIdStatus("idle")
+        setVerifiedStudent(null)
+        notifications.show({
+          title: "Team Leader Restricted",
+          message:
+            "This ID cannot register as Team Leader. Only Student ID 0272320005101220 (Md Sabbir Ahmed) is authorized to create a Team Leader account. Please go back and choose 'General Member'.",
+          color: "red",
+          autoClose: 10000,
+        })
+        return
+      }
+    }
+
     setStudentIdStatus("checking")
     try {
       const res: any = await api.post("/research/verify-student", {
         studentId: cleanId,
+        role: accountType,
       })
       const isSuccess = res?.success ?? res?.data?.success
       const student = res?.student ?? res?.data?.student
       if (isSuccess && student) {
-        setStudentIdStatus("verified")
-        setVerifiedStudent(student)
-        if (student.name) {
-          setFullName(student.name)
-        }
+        // Double check leader authorization from returned student record
         if (
           authMode === "signup" &&
           accountType === "leader" &&
           cleanId !== "0272320005101220" &&
           !cleanId.endsWith("0272320005101220")
         ) {
+          setStudentIdStatus("idle")
+          setVerifiedStudent(null)
           notifications.show({
-            title: "Leader Account Restricted",
-            message: `Verified: ${student.name}. However, only student ID 0272320005101220 may create a Team Leader account. Please select General Member.`,
-            color: "yellow",
-            autoClose: 9000,
+            title: "Team Leader Restricted",
+            message:
+              "Only Student ID 0272320005101220 (Md Sabbir Ahmed) can register as Team Leader. Please choose General Member.",
+            color: "red",
+            autoClose: 10000,
           })
-        } else {
-          notifications.show({
-            title: "Student ID Verified",
-            message: `Official record verified: ${student.name} (CGPA: ${student.cgpa || "N/A"})`,
-            color: "green",
-          })
+          return
         }
+
+        setStudentIdStatus("verified")
+        setVerifiedStudent(student)
+        if (student.name) {
+          setFullName(student.name)
+        }
+        notifications.show({
+          title: "Student ID Verified",
+          message: `Official record verified: ${student.name} (CGPA: ${student.cgpa || "N/A"})`,
+          color: "green",
+        })
       } else {
         setStudentIdStatus("idle")
         notifications.show({
@@ -4192,16 +4216,16 @@ export function ResearchLandingPage({
         err?.response?.data?.message ||
         `Student ID "${cleanId}" is not in the university records. Only authorized students can register.`
       notifications.show({
-        title: "Student ID Not Found",
+        title: "Verification Error",
         message: errorMsg,
         color: "red",
-        autoClose: 7000,
+        autoClose: 8000,
       })
     }
   }
 
   const handleSendOtp = async () => {
-    const cleanEmail = accountEmail.trim()
+    const cleanEmail = accountEmail.trim().toLowerCase()
     const cleanId = studentId.trim()
     if (!cleanEmail || !cleanId) {
       notifications.show({
@@ -4211,19 +4235,40 @@ export function ResearchLandingPage({
       })
       return
     }
+
+    if (
+      authMode === "signup" &&
+      accountType === "leader" &&
+      cleanId !== "0272320005101220" &&
+      !cleanId.endsWith("0272320005101220")
+    ) {
+      notifications.show({
+        title: "Team Leader Restricted",
+        message:
+          "Only Student ID 0272320005101220 is authorized to create a Team Leader account.",
+        color: "red",
+        autoClose: 8000,
+      })
+      return
+    }
+
     setIsSubmitting(true)
     try {
       const res: any = await api.post("/research/send-otp", {
         email: cleanEmail,
         studentId: cleanId,
+        role: accountType,
       })
-      const otp = res?.otpCode ?? res?.data?.otpCode
+      const otp = res?.otpCode ?? res?.data?.otpCode ?? res?.data?.data?.otpCode
       setOtpSent(true)
+      if (otp) {
+        setOtpCode(otp)
+      }
       notifications.show({
-        title: "6-Digit OTP Sent",
-        message: `Verification code: ${otp || "Sent"} (Valid for 10 minutes). Stored in database.`,
+        title: "Verification Code Generated",
+        message: `Security Code: ${otp || "Generated"} (Auto-filled below). Click 'Verify OTP' to continue.`,
         color: "blue",
-        autoClose: 15000,
+        autoClose: 20000,
       })
     } catch (err: any) {
       const errorMsg =
@@ -5023,7 +5068,17 @@ export function ResearchLandingPage({
                         {isSubmitting ? "Generating OTP..." : "Send email OTP"}
                       </button>
                     ) : (
-                      <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                      <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 space-y-2">
+                        <div className="flex items-center justify-between text-xs font-bold text-indigo-950">
+                          <span>Verification Code</span>
+                          {otpCode ? (
+                            <span className="font-mono text-xs font-extrabold tracking-widest bg-indigo-600 text-white px-2.5 py-0.5 rounded-lg shadow-sm">
+                              {otpCode}
+                            </span>
+                          ) : (
+                            <span className="text-[11px] text-indigo-600 font-semibold">Generating...</span>
+                          )}
+                        </div>
                         <div className="flex gap-2">
                           <input
                             inputMode="numeric"
@@ -5034,13 +5089,13 @@ export function ResearchLandingPage({
                               setOtpVerified(false)
                             }}
                             placeholder="6-digit OTP"
-                            className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-center font-mono text-sm tracking-[0.3em] text-slate-900 outline-none placeholder:tracking-normal placeholder:text-slate-400 focus:border-indigo-500"
+                            className="min-w-0 flex-1 rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-center font-mono text-sm tracking-[0.3em] font-bold text-indigo-950 outline-none placeholder:tracking-normal placeholder:font-normal placeholder:text-slate-400 focus:border-indigo-500"
                           />
                           <button
                             type="button"
                             disabled={otpCode.length !== 6 || isSubmitting}
                             onClick={handleVerifyOtp}
-                            className="rounded-xl bg-indigo-600 px-3.5 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:pointer-events-none disabled:opacity-40"
+                            className="rounded-xl bg-indigo-600 px-4 text-xs font-bold text-white transition hover:bg-indigo-700 disabled:pointer-events-none disabled:opacity-40 shadow-sm"
                           >
                             {isSubmitting ? (
                               <span className="inline-block size-3.5 animate-spin rounded-full border-2 border-white border-t-transparent" />
@@ -5051,10 +5106,10 @@ export function ResearchLandingPage({
                             )}
                           </button>
                         </div>
-                        <p className="mt-2 text-[10px] text-slate-500">
+                        <p className="text-[10px] text-indigo-800 font-medium">
                           {otpVerified
                             ? "✓ 6-digit OTP verified against database."
-                            : "Enter the 6-digit OTP sent to your email to verify authorization."}
+                            : "Code auto-filled from database. Click 'Verify OTP' to activate password creation."}
                         </p>
                       </div>
                     )}

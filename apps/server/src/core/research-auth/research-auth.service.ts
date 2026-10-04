@@ -192,6 +192,17 @@ export class ResearchAuthService implements OnModuleInit {
     const sSerial = student.serial ?? 0;
     const sStatus = student.status ?? 'Active';
 
+    // Strict Leader authorization check
+    const LEADER_STUDENT_ID = '0272320005101220';
+    const isLeaderCheck =
+      dto.role === 'leader' || dto.role === 'Team Leader' || dto.role?.toLowerCase().includes('leader');
+
+    if (isLeaderCheck && sId !== LEADER_STUDENT_ID && !sId.endsWith(LEADER_STUDENT_ID)) {
+      throw new BadRequestException(
+        `Student ID '${rawId}' (${sName}) is not authorized to register as Team Leader. Only Student ID 0272320005101220 (Md Sabbir Ahmed) can register as Team Leader. Please choose General Member.`,
+      );
+    }
+
     return {
       success: true,
       student: {
@@ -208,6 +219,17 @@ export class ResearchAuthService implements OnModuleInit {
   async sendOtp(dto: SendOtpDto) {
     const email = dto.email.trim().toLowerCase();
     const studentId = dto.studentId.trim();
+
+    // Strict Leader check for OTP issuance
+    const LEADER_STUDENT_ID = '0272320005101220';
+    const isLeaderCheck =
+      dto.role === 'leader' || dto.role === 'Team Leader' || dto.role?.toLowerCase().includes('leader');
+
+    if (isLeaderCheck && studentId !== LEADER_STUDENT_ID && !studentId.endsWith(LEADER_STUDENT_ID)) {
+      throw new BadRequestException(
+        'Only Student ID 0272320005101220 (Md Sabbir Ahmed) is authorized to request OTP for Team Leader account creation.',
+      );
+    }
 
     // Validate student exists in DB or official list
     let studentCheck: any = null;
