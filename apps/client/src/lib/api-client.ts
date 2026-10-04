@@ -42,12 +42,14 @@ api.interceptors.response.use(
           if (pathname === "/api/auth/collab-token") return;
           if (pathname.includes("/research")) break;
           if (window.location.pathname.startsWith("/share/")) return;
-          // Never redirect if user is on research dashboard, landing page, or public docs
+          // Never redirect if user is on research dashboard, landing page, notes, or public docs
           if (
             window.location.pathname === "/dashboard" ||
             window.location.pathname.startsWith("/dashboard") ||
             window.location.pathname === "/welcome" ||
             window.location.pathname === "/" ||
+            window.location.pathname.startsWith("/s/") ||
+            window.location.pathname.startsWith("/p/") ||
             window.location.pathname.startsWith("/docs")
           ) {
             break;
@@ -86,6 +88,8 @@ function redirectToLogin() {
     "/oauth/consent",
     "/dashboard",
     "/welcome",
+    "/s/",
+    "/p/",
     "/",
   ];
   if (!exemptPaths.some((path) => window.location.pathname.startsWith(path))) {

@@ -92,7 +92,16 @@ const ResearchDashboardPage = lazy(
 
 function RootRoute() {
   const { data, isLoading } = useCurrentUser();
-  if (isLoading) return null;
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", height: "100vh", width: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "#080F0C", color: "#10b981", fontFamily: "monospace" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "22px", fontWeight: "bold", marginBottom: "8px", letterSpacing: "-0.02em" }}>0x7Note</div>
+          <div style={{ fontSize: "12px", color: "#8FA89B" }}>Opening workspace...</div>
+        </div>
+      </div>
+    );
+  }
   if (data?.user) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -111,7 +120,16 @@ export default function App() {
   }, []);
 
   return (
-    <Suspense fallback={null}>
+    <Suspense
+      fallback={
+        <div style={{ display: "flex", height: "100vh", width: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "#080F0C", color: "#10b981", fontFamily: "monospace" }}>
+          <div style={{ textAlign: "center" }}>
+            <div style={{ fontSize: "22px", fontWeight: "bold", marginBottom: "8px", letterSpacing: "-0.02em" }}>0x7Note</div>
+            <div style={{ fontSize: "12px", color: "#8FA89B" }}>Loading application...</div>
+          </div>
+        </div>
+      }
+    >
       <Routes>
         <Route index element={<RootRoute />} />
         <Route path={"/welcome"} element={<LandingPage />} />

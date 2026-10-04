@@ -70,7 +70,16 @@ export function UserProvider({ children }: React.PropsWithChildren) {
     }
   }, [entitlements]);
 
-  if (isLoading) return <></>;
+  if (isLoading) {
+    return (
+      <div style={{ display: "flex", height: "100vh", width: "100%", alignItems: "center", justifyContent: "center", backgroundColor: "#080F0C", color: "#10b981", fontFamily: "monospace" }}>
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: "22px", fontWeight: "bold", marginBottom: "8px", letterSpacing: "-0.02em" }}>0x7Note</div>
+          <div style={{ fontSize: "12px", color: "#8FA89B" }}>Connecting session...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (isError && error?.["response"]?.status === 404) {
     return <Error404 />;

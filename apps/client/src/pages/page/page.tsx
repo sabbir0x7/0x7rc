@@ -127,7 +127,11 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
 
 
   if (isLoading) {
-    return <></>;
+    return (
+      <div style={{ display: "flex", height: "60vh", width: "100%", alignItems: "center", justifyContent: "center", color: "#64748b", fontFamily: "monospace" }}>
+        Opening 0x7Note editor...
+      </div>
+    );
   }
 
   if (isError || !page) {
@@ -155,8 +159,12 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
     );
   }
 
-  if (!space) {
-    return <></>;
+  if (!space && !page) {
+    return (
+      <div style={{ display: "flex", height: "60vh", width: "100%", alignItems: "center", justifyContent: "center", color: "#64748b", fontFamily: "monospace" }}>
+        Loading note workspace...
+      </div>
+    );
   }
 
   if (page?.isBase) {
