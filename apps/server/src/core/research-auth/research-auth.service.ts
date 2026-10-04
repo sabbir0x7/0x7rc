@@ -360,6 +360,22 @@ export class ResearchAuthService implements OnModuleInit {
     const sCgpa = verifiedStudent.cgpa;
     const sCredits = verifiedStudent.totalCreditsEarned ?? verifiedStudent.total_credits_earned;
 
+    // Strict validation: Only ID 0272320005101220 can create a Team Leader account
+    const LEADER_STUDENT_ID = '0272320005101220';
+    const isLeaderRequest =
+      dto.role === 'Team Leader' || dto.role?.toLowerCase().includes('leader');
+
+    if (isLeaderRequest && sId !== LEADER_STUDENT_ID) {
+      throw new BadRequestException(
+        'Only authorized student ID 0272320005101220 (Md Sabbir Ahmed) is permitted to create a Team Leader account. Other students must register as General Member.',
+      );
+    }
+
+    const assignedRole =
+      sId === LEADER_STUDENT_ID
+        ? 'Team Leader'
+        : (isLeaderRequest ? 'General Member' : (dto.role || 'General Member'));
+
     const [createdUser]: any = await this.db
       .insertInto('research_users' as any)
       .values({
@@ -367,7 +383,7 @@ export class ResearchAuthService implements OnModuleInit {
         name: sName,
         email,
         password_hash: passwordHash,
-        role: dto.role || 'Researcher',
+        role: assignedRole,
         team_id: dto.teamId?.trim() || '0X7-CORE',
         cgpa: sCgpa,
         credits: sCredits,

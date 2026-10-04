@@ -146,10 +146,20 @@ export function AccountSettingsModal({
 
     setIsSaving(true)
     try {
+      const isLeader =
+        currentUser.studentId === "0272320005101220" ||
+        studentId.trim() === "0272320005101220" ||
+        studentId.trim().endsWith("0272320005101220")
+
+      const safeRole =
+        !isLeader && role.toLowerCase().includes("leader")
+          ? "General Member"
+          : role.trim() || "Researcher"
+
       await onSaveProfile({
         name: name.trim(),
         avatar,
-        role: role.trim() || "Researcher",
+        role: safeRole,
         batch: batch.trim(),
         section: section.trim(),
         studentId: studentId.trim(),
@@ -183,8 +193,13 @@ export function AccountSettingsModal({
     .slice(0, 2)
     .toUpperCase()
 
+  const isLeaderUser =
+    currentUser.studentId === "0272320005101220" ||
+    studentId.trim() === "0272320005101220" ||
+    studentId.trim().endsWith("0272320005101220")
+
   const quickRoles = [
-    "Team Leader",
+    ...(isLeaderUser ? ["Team Leader"] : []),
     "Senior Researcher",
     "AI Security Researcher",
     "Frontend Engineer",

@@ -4158,11 +4158,25 @@ export function ResearchLandingPage({
         if (student.name) {
           setFullName(student.name)
         }
-        notifications.show({
-          title: "Student ID Verified",
-          message: `Official record verified: ${student.name} (CGPA: ${student.cgpa || "N/A"})`,
-          color: "green",
-        })
+        if (
+          authMode === "signup" &&
+          accountType === "leader" &&
+          cleanId !== "0272320005101220" &&
+          !cleanId.endsWith("0272320005101220")
+        ) {
+          notifications.show({
+            title: "Leader Account Restricted",
+            message: `Verified: ${student.name}. However, only student ID 0272320005101220 may create a Team Leader account. Please select General Member.`,
+            color: "yellow",
+            autoClose: 9000,
+          })
+        } else {
+          notifications.show({
+            title: "Student ID Verified",
+            message: `Official record verified: ${student.name} (CGPA: ${student.cgpa || "N/A"})`,
+            color: "green",
+          })
+        }
       } else {
         setStudentIdStatus("idle")
         notifications.show({
@@ -4313,6 +4327,21 @@ export function ResearchLandingPage({
           color: "yellow",
         })
         return
+      }
+
+      if (accountType === "leader") {
+        const cleanId = studentId.trim()
+        const LEADER_ID = "0272320005101220"
+        if (cleanId !== LEADER_ID && !cleanId.endsWith(LEADER_ID)) {
+          notifications.show({
+            title: "Leader Account Restricted",
+            message:
+              "Only authorized student ID 0272320005101220 (Md Sabbir Ahmed) is permitted to create a Team Leader account. Please select 'General Member' to join with a Team ID.",
+            color: "red",
+            autoClose: 8000,
+          })
+          return
+        }
       }
 
       setIsSubmitting(true)
@@ -4770,8 +4799,8 @@ export function ResearchLandingPage({
                     title: "Team Leader",
                     description:
                       authMode === "signup"
-                        ? "Create your research team (Generates Team ID)"
-                        : "Log in to manage your team",
+                        ? "Create research team (Exclusive to ID: 0272320005101220)"
+                        : "Log in as Team Leader",
                     icon: "spark" as IconName,
                   },
                   {
