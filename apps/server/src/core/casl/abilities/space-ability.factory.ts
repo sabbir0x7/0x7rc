@@ -18,10 +18,11 @@ import { findHighestUserSpaceRole } from '@docmost/db/repos/space/utils';
 export default class SpaceAbilityFactory {
   constructor(private readonly spaceMemberRepo: SpaceMemberRepo) {}
   async createForUser(user: User, spaceId: string) {
+    const roleLower = (user?.role || '').toLowerCase();
     if (
-      user.role === 'ADMIN' ||
-      user.role === 'OWNER' ||
-      (user as any).role === 'SUPER_ADMIN'
+      roleLower === 'admin' ||
+      roleLower === 'owner' ||
+      roleLower === 'super_admin'
     ) {
       return buildSpaceAdminAbility();
     }
@@ -32,8 +33,9 @@ export default class SpaceAbilityFactory {
     );
 
     const userSpaceRole = findHighestUserSpaceRole(userSpaceRoles);
+    const spaceRoleLower = (userSpaceRole || '').toLowerCase();
 
-    switch (userSpaceRole) {
+    switch (spaceRoleLower) {
       case SpaceRole.ADMIN:
         return buildSpaceAdminAbility();
       case SpaceRole.WRITER:

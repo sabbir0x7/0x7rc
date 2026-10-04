@@ -4431,6 +4431,18 @@ export function ResearchLandingPage({
         localStorage.setItem("0x7_user_profile", JSON.stringify(userProfile))
         localStorage.setItem("0x7_research_auth_user", JSON.stringify(user))
 
+        const regPayload = res?.data || res
+        const regToken = regPayload?.sessionToken || regPayload?.token
+        if (regToken) {
+          localStorage.setItem("0x7_session_token", regToken)
+        }
+        if (regPayload?.spaceId) {
+          localStorage.setItem("0x7_active_space_id", regPayload.spaceId)
+        }
+        if (regPayload?.spaceSlug) {
+          localStorage.setItem("0x7_active_space_slug", regPayload.spaceSlug)
+        }
+
         notifications.show({
           title: "Registration Successful",
           message: `Account created for ${user.name} (${user.role}).`,
@@ -4474,10 +4486,23 @@ export function ResearchLandingPage({
           password: password.trim(),
         })
 
-        const user = res?.user ?? res?.data?.user
+        const loginPayload = res?.data || res
+        const user = loginPayload?.user || res?.user
         if (!user) {
           throw new Error("Unable to retrieve user details from server.")
         }
+
+        const loginToken = loginPayload?.sessionToken || loginPayload?.token
+        if (loginToken) {
+          localStorage.setItem("0x7_session_token", loginToken)
+        }
+        if (loginPayload?.spaceId) {
+          localStorage.setItem("0x7_active_space_id", loginPayload.spaceId)
+        }
+        if (loginPayload?.spaceSlug) {
+          localStorage.setItem("0x7_active_space_slug", loginPayload.spaceSlug)
+        }
+
         const userProfile = {
           id: user.id,
           name: user.name,
@@ -5303,12 +5328,23 @@ export function ResearchTeamManagerApp({
   const navigate = useNavigate()
   const { data: researchNotesData, refetch: refetchResearchNotes } = useResearchNotesQuery()
   const { data: spacesData } = useGetSpacesQuery()
-  const [syncedSpaceId, setSyncedSpaceId] = useState<string>("")
-  const [syncedSpaceSlug, setSyncedSpaceSlug] = useState<string>("")
+  const [syncedSpaceId, setSyncedSpaceId] = useState<string>(
+    () => localStorage.getItem("0x7_active_space_id") || "",
+  )
+  const [syncedSpaceSlug, setSyncedSpaceSlug] = useState<string>(
+    () => localStorage.getItem("0x7_active_space_slug") || "general",
+  )
   const defaultSpace = spacesData?.items?.[0]
   const defaultSpaceId =
-    defaultSpace?.id || syncedSpaceId || "01a0ee80-4047-71ec-8a55-7ae9995da890"
-  const defaultSpaceSlug = defaultSpace?.slug || syncedSpaceSlug || "general"
+    defaultSpace?.id ||
+    syncedSpaceId ||
+    localStorage.getItem("0x7_active_space_id") ||
+    ""
+  const defaultSpaceSlug =
+    defaultSpace?.slug ||
+    syncedSpaceSlug ||
+    localStorage.getItem("0x7_active_space_slug") ||
+    "general"
   const createPageMutation = useCreatePageMutation()
   const togglePublishMutation = useTogglePublishMutation()
   const deletePageMutation = useDeletePageMutation()
@@ -5518,11 +5554,20 @@ export function ResearchTeamManagerApp({
         role: currentUser.role,
       })
       .then((res: any) => {
-        if (res?.spaceId) {
-          setSyncedSpaceId(res.spaceId)
+        const payload = res?.data || res
+        const spaceId = payload?.spaceId
+        const spaceSlug = payload?.spaceSlug
+        const token = payload?.token || payload?.sessionToken
+        if (token && typeof token === "string") {
+          localStorage.setItem("0x7_session_token", token)
         }
-        if (res?.spaceSlug) {
-          setSyncedSpaceSlug(res.spaceSlug)
+        if (spaceId && typeof spaceId === "string") {
+          setSyncedSpaceId(spaceId)
+          localStorage.setItem("0x7_active_space_id", spaceId)
+        }
+        if (spaceSlug && typeof spaceSlug === "string") {
+          setSyncedSpaceSlug(spaceSlug)
+          localStorage.setItem("0x7_active_space_slug", spaceSlug)
         }
       })
       .catch((err) => {
@@ -6064,47 +6109,28 @@ export function ResearchTeamManagerApp({
     })
 
     try {
-      let spaceSlug = defaultSpaceSlug || "general"
-      let slugId: string | null = null
+      // Create note directly through /research/create-note which synchronizes
+      // workspace, space, and user records in postgres before inserting.
+      const res: any = await api.post("/research/create-note", {
+        title: "Untitled Note",
+        projectId: selectedProject ? String(selectedProject.id) : undefined,
+        isPublished: false,
+        authorName: currentUser.name,
+        authorStudentId: currentUser.studentId,
+        spaceId: defaultSpaceId || undefined,
+      })
 
-      try {
-        const pageRes = await createPageMutation.mutateAsync({
-          spaceId: defaultSpaceId,
-          title: "Untitled Note",
-          isPublished: false,
-          projectId: selectedProject ? String(selectedProject.id) : undefined,
-        })
-        if (pageRes?.slugId) {
-          slugId = pageRes.slugId
-          spaceSlug = pageRes.space?.slug || spaceSlug
-        }
-      } catch (mutationErr) {
-        console.warn("createPageMutation failed, trying /research/create-note:", mutationErr)
-      }
-
-      if (!slugId) {
-        const res: any = await api.post("/research/create-note", {
-          title: "Untitled Note",
-          projectId: selectedProject ? String(selectedProject.id) : undefined,
-          isPublished: false,
-          authorName: currentUser.name,
-          authorStudentId: currentUser.studentId,
-          spaceId: defaultSpaceId,
-        })
-        const data = res?.data || res
-        if (data?.note?.slugId) {
-          slugId = data.note.slugId
-          spaceSlug = data.note.spaceSlug || spaceSlug
-        }
-      }
+      const data = res?.data || res
+      const note = data?.note || data?.data?.note
 
       notifications.hide("creating-note")
 
-      if (slugId) {
+      if (note?.slugId) {
         if (refetchResearchNotes) {
           refetchResearchNotes()
         }
-        navigate(`/s/${spaceSlug}/p/${slugId}`)
+        const targetSpace = note.spaceSlug || defaultSpaceSlug || "general"
+        navigate(`/s/${targetSpace}/p/${note.slugId}`)
       } else {
         notifications.show({
           title: "Error",
@@ -6116,7 +6142,10 @@ export function ResearchTeamManagerApp({
       notifications.hide("creating-note")
       notifications.show({
         title: "Creation Error",
-        message: err?.message || "Failed to create note in 0x7Note.",
+        message:
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create note in 0x7Note.",
         color: "red",
       })
     }

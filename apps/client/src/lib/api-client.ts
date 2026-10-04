@@ -7,8 +7,43 @@ const api: AxiosInstance = axios.create({
   withCredentials: true,
 });
 
+api.interceptors.request.use((config) => {
+  try {
+    const token = localStorage.getItem("0x7_session_token");
+    if (token && !config.headers.Authorization) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  } catch (e) {
+    // ignore
+  }
+  return config;
+});
+
 api.interceptors.response.use(
   (response) => {
+    // Automatically persist returned JWT tokens and space info
+    try {
+      const data = response.data;
+      const token =
+        data?.token ||
+        data?.sessionToken ||
+        data?.data?.token ||
+        data?.data?.sessionToken;
+      if (token && typeof token === "string") {
+        localStorage.setItem("0x7_session_token", token);
+      }
+      const spaceId = data?.spaceId || data?.data?.spaceId;
+      if (spaceId && typeof spaceId === "string") {
+        localStorage.setItem("0x7_active_space_id", spaceId);
+      }
+      const spaceSlug = data?.spaceSlug || data?.data?.spaceSlug;
+      if (spaceSlug && typeof spaceSlug === "string") {
+        localStorage.setItem("0x7_active_space_slug", spaceSlug);
+      }
+    } catch (e) {
+      // ignore
+    }
+
     // we need the response headers for these endpoints
     const exemptEndpoints = [
       "/api/pages/export",

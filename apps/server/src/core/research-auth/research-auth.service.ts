@@ -551,12 +551,12 @@ export class ResearchAuthService implements OnModuleInit {
       let workspace = await this.workspaceRepo.findFirst().catch(() => null);
       if (!workspace) {
         try {
-          const [newWs]: any = await sql`
+          const res: any = await sql`
             INSERT INTO workspaces (id, name, default_role, created_at, updated_at)
-            VALUES (gen_random_uuid(), '0x7Note', 'ADMIN', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (gen_random_uuid(), '0x7Note', 'member', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *
           `.execute(this.db);
-          workspace = newWs;
+          workspace = res?.rows?.[0];
         } catch (wsErr: any) {
           this.logger.warn(`Could not insert workspace: ${wsErr?.message}`);
           workspace = await this.workspaceRepo.findFirst().catch(() => null);
@@ -578,17 +578,18 @@ export class ResearchAuthService implements OnModuleInit {
         .selectFrom('spaces' as any)
         .selectAll()
         .where('workspace_id', '=', workspace.id)
+        .orderBy('created_at', 'asc')
         .executeTakeFirst()
         .catch(() => null);
 
       if (!space) {
         try {
-          const [newSpace]: any = await sql`
+          const res: any = await sql`
             INSERT INTO spaces (id, workspace_id, name, slug, visibility, default_role, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${workspace.id}, '0x7Note', 'general', 'PUBLIC', 'WRITER', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            VALUES (gen_random_uuid(), ${workspace.id}, 'General', 'general', 'open', 'writer', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             RETURNING *
           `.execute(this.db);
-          space = newSpace;
+          space = res?.rows?.[0];
         } catch (spaceErr: any) {
           this.logger.warn(`Could not insert space: ${spaceErr?.message}`);
         }
@@ -599,7 +600,7 @@ export class ResearchAuthService implements OnModuleInit {
       const email = (userData?.email?.trim() || `${sId}@0x7.internal`).toLowerCase();
       const name = userData?.name?.trim() || (sId === '0272320005101220' ? 'Md Sabbir Ahmed' : 'Researcher');
       const isLeader = sId === '0272320005101220' || userData?.role?.toLowerCase().includes('leader');
-      const docmostRole = isLeader ? 'ADMIN' : 'MEMBER';
+      const docmostRole = isLeader ? 'admin' : 'member';
 
       let user: any = await this.userRepo.findByEmail(email, workspace.id).catch(() => null);
       if (!user) {
@@ -608,15 +609,16 @@ export class ResearchAuthService implements OnModuleInit {
           user = firstAdmin;
         } else {
           try {
-            const [newUser]: any = await sql`
+            const res: any = await sql`
               INSERT INTO users (id, workspace_id, name, email, role, email_verified_at, created_at, updated_at)
               VALUES (gen_random_uuid(), ${workspace.id}, ${name}, ${email}, ${docmostRole}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
               RETURNING *
             `.execute(this.db);
-            user = newUser;
+            user = res?.rows?.[0];
           } catch (uErr: any) {
             this.logger.warn(`Could not insert docmost user: ${uErr?.message}`);
-            user = (await this.userRepo.findFirst(workspace.id).catch(() => null)) || firstAdmin;
+            user = (await this.userRepo.findFirstAdmin(workspace.id).catch(() => null)) ||
+                   (await this.userRepo.findFirst(workspace.id).catch(() => null));
           }
         }
       }
@@ -631,13 +633,15 @@ export class ResearchAuthService implements OnModuleInit {
         };
       }
 
-      // 4. Ensure space membership
+      // 4. Ensure space membership with lowercase role
       if (space && user) {
         try {
           await sql`
             INSERT INTO space_members (id, space_id, user_id, role, created_at, updated_at)
-            VALUES (gen_random_uuid(), ${space.id}, ${user.id}, ${isLeader ? 'ADMIN' : 'WRITER'}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-            ON CONFLICT (space_id, user_id) DO NOTHING
+            VALUES (gen_random_uuid(), ${space.id}, ${user.id}, ${isLeader ? 'admin' : 'writer'}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            ON CONFLICT (space_id, user_id) DO UPDATE SET
+              role = EXCLUDED.role,
+              updated_at = CURRENT_TIMESTAMP
           `.execute(this.db);
         } catch {
           // ignore conflict
@@ -716,7 +720,25 @@ export class ResearchAuthService implements OnModuleInit {
     });
 
     const workspaceId = session.workspaceId;
-    const spaceId = dto.spaceId || session.spaceId;
+    let spaceId = session.spaceId;
+    let spaceSlug = session.spaceSlug || 'general';
+
+    // Verify if provided dto.spaceId actually exists in the database for this workspace
+    if (dto.spaceId && workspaceId) {
+      const existingSpace: any = await this.db
+        .selectFrom('spaces' as any)
+        .select(['id', 'slug'])
+        .where('id', '=', dto.spaceId)
+        .where('workspace_id', '=', workspaceId)
+        .where('deleted_at', 'is', null)
+        .executeTakeFirst()
+        .catch(() => null);
+      if (existingSpace) {
+        spaceId = existingSpace.id;
+        spaceSlug = existingSpace.slug || spaceSlug;
+      }
+    }
+
     const creatorId = session.user?.id;
     const slugId = generateSlugId();
 
@@ -727,39 +749,44 @@ export class ResearchAuthService implements OnModuleInit {
       authorStudentId: dto.authorStudentId || '',
     };
 
-    const docContent = {
-      type: 'doc',
-      content: [
-        {
-          type: 'paragraph',
-          content: [{ type: 'text', text: textContent || '' }],
-        },
-      ],
-      metadata: noteMetadata,
-    };
+    const docContent = textContent
+      ? JSON.stringify({
+          type: 'doc',
+          content: [
+            {
+              type: 'paragraph',
+              content: [{ type: 'text', text: textContent }],
+            },
+          ],
+        })
+      : null;
+    const finalContentSql = docContent ? sql`${docContent}::jsonb` : sql`null`;
 
     // 2. Insert into pages table directly using only standard columns
     let createdPage: any = null;
     if (workspaceId && spaceId && creatorId) {
       try {
-        const [row]: any = await sql`
+        const insertRes: any = await sql`
           INSERT INTO pages (
             id, slug_id, title, workspace_id, space_id, creator_id, last_updated_by_id,
             text_content, content, created_at, updated_at
           )
           VALUES (
             gen_random_uuid(), ${slugId}, ${title}, ${workspaceId}, ${spaceId}, ${creatorId}, ${creatorId},
-            ${textContent}, ${JSON.stringify(docContent)}::jsonb, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+            ${textContent || null}, ${finalContentSql}, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
           )
           RETURNING *
         `.execute(this.db);
-        createdPage = row;
+        createdPage = insertRes?.rows?.[0];
       } catch (insertErr: any) {
-        this.logger.warn(`Could not insert into pages table: ${insertErr?.message}`);
+        this.logger.error(`Could not insert into pages table: ${insertErr?.message}`);
+        throw new BadRequestException(`Failed to create note: ${insertErr?.message}`);
       }
     }
 
-    const spaceSlug = session.spaceSlug || 'general';
+    if (!createdPage) {
+      throw new BadRequestException('Failed to insert page into database.');
+    }
 
     return {
       success: true,

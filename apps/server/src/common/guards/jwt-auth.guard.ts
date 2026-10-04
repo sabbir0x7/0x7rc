@@ -61,11 +61,37 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     }
 
     // Auto-authenticate fallback using workspace user for Research Center
-    const workspace = await this.workspaceRepo.findFirst();
+    let workspace = await this.workspaceRepo.findFirst().catch(() => null);
+    if (!workspace) {
+      try {
+        workspace = await this.workspaceRepo.insertWorkspace({
+          name: '0x7 Research Center',
+          description: '0x7 Research Center Workspace',
+          defaultRole: 'member',
+        } as any);
+      } catch (e) {
+        workspace = await this.workspaceRepo.findFirst().catch(() => null);
+      }
+    }
+
     if (workspace) {
-      const defaultUser =
-        (await this.userRepo.findFirstAdmin(workspace.id)) ||
-        (await this.userRepo.findFirst(workspace.id));
+      let defaultUser =
+        (await this.userRepo.findFirstAdmin(workspace.id).catch(() => null)) ||
+        (await this.userRepo.findFirst(workspace.id).catch(() => null));
+
+      if (!defaultUser) {
+        try {
+          defaultUser = await this.userRepo.insertUser({
+            name: 'Md Sabbir Ahmed',
+            email: '0272320005101220@0x7.internal',
+            role: 'admin',
+            workspaceId: workspace.id,
+          } as any);
+        } catch (e) {
+          defaultUser = await this.userRepo.findFirst(workspace.id).catch(() => null);
+        }
+      }
+
       if (defaultUser) {
         req.user = { user: defaultUser, workspace, authType: JwtType.ACCESS };
         if (req.raw) {

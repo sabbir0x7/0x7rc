@@ -135,7 +135,9 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
   }
 
   if (isError || !page) {
-    if ([401, 403, 404].includes(error?.["status"])) {
+    const httpStatus =
+      (error as any)?.response?.status || (error as any)?.status;
+    if ([401, 403, 404].includes(httpStatus)) {
       return (
         <EmptyState
           icon={IconFileOff}
@@ -155,6 +157,14 @@ function PageContent({ pageSlug }: { pageSlug: string | undefined }) {
       <EmptyState
         icon={IconFileOff}
         title={t("Error fetching page data.")}
+        description={t(
+          "Unable to load note data. Please return to the research dashboard.",
+        )}
+        action={
+          <Button component={Link} to="/dashboard" variant="default" size="sm" mt="xs">
+            {t("Go to dashboard")}
+          </Button>
+        }
       />
     );
   }
