@@ -4150,15 +4150,17 @@ export function ResearchLandingPage({
       const res: any = await api.post("/research/verify-student", {
         studentId: cleanId,
       })
-      if (res?.success && res?.student) {
+      const isSuccess = res?.success ?? res?.data?.success
+      const student = res?.student ?? res?.data?.student
+      if (isSuccess && student) {
         setStudentIdStatus("verified")
-        setVerifiedStudent(res.student)
-        if (res.student.name) {
-          setFullName(res.student.name)
+        setVerifiedStudent(student)
+        if (student.name) {
+          setFullName(student.name)
         }
         notifications.show({
           title: "Student ID Verified",
-          message: `Official record verified: ${res.student.name} (CGPA: ${res.student.cgpa || "N/A"})`,
+          message: `Official record verified: ${student.name} (CGPA: ${student.cgpa || "N/A"})`,
           color: "green",
         })
       } else {
@@ -4201,10 +4203,11 @@ export function ResearchLandingPage({
         email: cleanEmail,
         studentId: cleanId,
       })
+      const otp = res?.otpCode ?? res?.data?.otpCode
       setOtpSent(true)
       notifications.show({
         title: "6-Digit OTP Sent",
-        message: `Verification code: ${res.otpCode} (Valid for 10 minutes). Stored in database.`,
+        message: `Verification code: ${otp || "Sent"} (Valid for 10 minutes). Stored in database.`,
         color: "blue",
         autoClose: 15000,
       })
@@ -4331,7 +4334,10 @@ export function ResearchLandingPage({
           teamId: teamIdToUse,
         })
 
-        const user = res.user
+        const user = res?.user ?? res?.data?.user
+        if (!user) {
+          throw new Error("Unable to retrieve user details from server.")
+        }
         const userProfile = {
           id: user.id,
           name: user.name,
@@ -4389,7 +4395,10 @@ export function ResearchLandingPage({
           password: password.trim(),
         })
 
-        const user = res.user
+        const user = res?.user ?? res?.data?.user
+        if (!user) {
+          throw new Error("Unable to retrieve user details from server.")
+        }
         const userProfile = {
           id: user.id,
           name: user.name,

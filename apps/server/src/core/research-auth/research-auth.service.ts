@@ -156,9 +156,12 @@ export class ResearchAuthService implements OnModuleInit {
       if (match) {
         student = {
           serial: match.serial,
+          studentId: match.studentId,
+          studentName: match.studentName,
           student_id: match.studentId,
           student_name: match.studentName,
           cgpa: match.cgpa,
+          totalCreditsEarned: match.totalCreditsEarned,
           total_credits_earned: match.totalCreditsEarned,
           status: match.status,
         };
@@ -182,15 +185,22 @@ export class ResearchAuthService implements OnModuleInit {
       );
     }
 
+    const sName = student.studentName ?? student.student_name ?? student.name ?? '';
+    const sId = student.studentId ?? student.student_id ?? rawId;
+    const sCredits = parseFloat(student.totalCreditsEarned ?? student.total_credits_earned ?? student.credits) || 0;
+    const sCgpa = parseFloat(student.cgpa) || 0;
+    const sSerial = student.serial ?? 0;
+    const sStatus = student.status ?? 'Active';
+
     return {
       success: true,
       student: {
-        serial: student.serial,
-        studentId: student.student_id,
-        name: student.student_name,
-        cgpa: parseFloat(student.cgpa) || 0,
-        credits: parseFloat(student.total_credits_earned) || 0,
-        status: student.status,
+        serial: sSerial,
+        studentId: sId,
+        name: sName,
+        cgpa: sCgpa,
+        credits: sCredits,
+        status: sStatus,
       },
     };
   }
@@ -345,17 +355,22 @@ export class ResearchAuthService implements OnModuleInit {
     const passwordHash = await hashPassword(dto.password);
 
     // 4. Save to research_users table
+    const sId = verifiedStudent.studentId ?? verifiedStudent.student_id ?? studentId;
+    const sName = verifiedStudent.studentName ?? verifiedStudent.student_name ?? dto.name.trim();
+    const sCgpa = verifiedStudent.cgpa;
+    const sCredits = verifiedStudent.totalCreditsEarned ?? verifiedStudent.total_credits_earned;
+
     const [createdUser]: any = await this.db
       .insertInto('research_users' as any)
       .values({
-        student_id: verifiedStudent.student_id,
-        name: verifiedStudent.student_name || dto.name.trim(),
+        student_id: sId,
+        name: sName,
         email,
         password_hash: passwordHash,
         role: dto.role || 'Researcher',
         team_id: dto.teamId?.trim() || '0X7-CORE',
-        cgpa: verifiedStudent.cgpa,
-        credits: verifiedStudent.total_credits_earned,
+        cgpa: sCgpa,
+        credits: sCredits,
       })
       .returningAll()
       .execute();
@@ -364,13 +379,13 @@ export class ResearchAuthService implements OnModuleInit {
       success: true,
       user: {
         id: createdUser.id,
-        studentId: createdUser.student_id,
-        name: createdUser.name,
-        email: createdUser.email,
-        role: createdUser.role,
-        teamId: createdUser.team_id,
-        cgpa: createdUser.cgpa,
-        credits: createdUser.credits,
+        studentId: createdUser.studentId ?? createdUser.student_id ?? sId,
+        name: createdUser.name ?? sName,
+        email: createdUser.email ?? email,
+        role: createdUser.role ?? 'Researcher',
+        teamId: createdUser.teamId ?? createdUser.team_id ?? '0X7-CORE',
+        cgpa: createdUser.cgpa ?? sCgpa,
+        credits: createdUser.credits ?? sCredits,
       },
     };
   }
@@ -397,7 +412,8 @@ export class ResearchAuthService implements OnModuleInit {
     }
 
     // 2. Compare password hash
-    const isMatch = await comparePasswordHash(dto.password, user.password_hash);
+    const userPasswordHash = user.passwordHash ?? user.password_hash;
+    const isMatch = await comparePasswordHash(dto.password, userPasswordHash);
     if (!isMatch) {
       throw new UnauthorizedException(
         'Incorrect password. Please verify and try again.',
@@ -408,11 +424,11 @@ export class ResearchAuthService implements OnModuleInit {
       success: true,
       user: {
         id: user.id,
-        studentId: user.student_id,
+        studentId: user.studentId ?? user.student_id ?? identifier,
         name: user.name,
         email: user.email,
         role: user.role,
-        teamId: user.team_id,
+        teamId: user.teamId ?? user.team_id,
         cgpa: user.cgpa,
         credits: user.credits,
       },
